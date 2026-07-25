@@ -4,12 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-MultiMail is an offline mail packet reader (Blue Wave, QWK/QWKE, OMEN, SOUP,
+NoCarrierMail is an offline mail packet reader (Blue Wave, QWK/QWKE, OMEN, SOUP,
 OPX) with a curses interface. C++ but deliberately old-school: hand-maintained
 Makefiles, compile-time configuration via `config.h`, heavy platform `#ifdef`
 use, and broad portability (Unix/Linux, DOS, OS/2, Windows, macOS; ncurses,
-SysV curses, or PDCurses). This checkout is `andy5995/MultiMail`, a fork of
-upstream `wmcbrine/MultiMail`.
+SysV curses, or PDCurses). This checkout is `andy5995/NoCarrierMail`, a fork of
+upstream `wmcbrine/MultiMail`, renamed in the 0.53 development cycle. The
+`mmail/` directory, `mmail.h`, and the `mmail` class kept their old names.
 
 ## Build / run
 
@@ -17,9 +18,9 @@ The primary (Unix/Linux/macOS/MSYS2/MSVC) build is **meson**:
 
 ```
 meson setup builddir                 # debug by default
-meson compile -C builddir            # -> builddir/mm
-./builddir/mm                        # run (reads ~/.mmailrc; packets in ~/mmail)
-meson install -C builddir            # installs mm + mm.1 under prefix
+meson compile -C builddir            # -> builddir/ncmail
+./builddir/ncmail                    # run (reads ~/.ncmailrc; packets in ~/ncmail)
+meson install -C builddir            # installs ncmail + ncmail.1 under prefix
 meson setup builddir --buildtype=release -Dstrip=true   # stripped release
 ```
 
@@ -42,7 +43,7 @@ meson setup builddir --buildtype=release -Dstrip=true   # stripped release
   `-DNO_USE_SHADOWS`, `-Dtar_kludge=false` → `-DNO_TAR_KLUDGE`. See
   `meson_options.txt` and the guarded `#define`s in `config.h`. Run
   `meson fmt -eir` after editing `meson.build`/`meson_options.txt`.
-- **Adding/removing a `.cc` means editing `meson.build`'s `mmail_src`/
+- **Adding/removing a `.cc` means editing `meson.build`'s `ncmail_src`/
   `interfac_src` lists AND the legacy makefiles' object lists (`Makefile.bcc`,
   `Makefile.vc`, `Makefile.wcc`, and `tclist`).** That source-list duplication is
   the main upkeep cost of keeping the legacy makefiles around.
@@ -57,9 +58,10 @@ meson setup builddir --buildtype=release -Dstrip=true   # stripped release
   (Linux-hosted Watcom emits `.o`, the makefiles want `.obj`), and the link line
   is `file { $(MOBJS) $(IOBJS) }`, not `file *.obj` (the wildcard only works on
   real DOS, where wlink expands it and the shell doesn't pre-glob).
-- `mm.1` is committed and current; meson installs it as-is and only regenerates
-  from `MANUAL.md` if `go-md2man` is installed (Arch: `extra/go-md2man`). Edit
-  `MANUAL.md`, not `mm.1`; the `docs.yml` CI job fails if they're out of sync.
+- `ncmail.1` is committed and current; meson installs it as-is and only
+  regenerates from `MANUAL.md` if `go-md2man` is installed (Arch:
+  `extra/go-md2man`). Edit `MANUAL.md`, not `ncmail.1`; the `docs.yml` CI job
+  fails if they're out of sync.
 
 ## Architecture
 
@@ -122,8 +124,10 @@ external (de)compressor and editor), `packet.cc` (UI side of opening packets).
   (`USE_SHADOWS`, `VANITY_PLATE`, `TAR_KLUDGE`), and the large block of
   per-compiler/per-OS `#define`s. Hand-edited; there is no `configure` step.
 - **`resource` class (`mmail/resource.{h,cc}`)** — *runtime*. Parses
-  `~/.mmailrc` (`mmail.rc` on DOS/OS2/Win). The `enum`s at the top of
+  `~/.ncmailrc` (`ncmail.rc` on DOS/OS2/Win). The `enum`s at the top of
   `resource.h` are the canonical list of every rc keyword (strings then ints);
+  they kept their pre-rename names (e.g. `mmHomeDir`), so an old `.mmailrc`
+  copied to `.ncmailrc` still parses;
   adding a setting means extending those enums plus the parallel name/default
   tables in `resource.cc`. `ColorClass` and `resource` both derive from
   `baseconfig`, the shared config-file parser.
