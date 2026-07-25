@@ -39,6 +39,13 @@ meson setup builddir --buildtype=release -Dstrip=true   # stripped release
 - CI (`.github/workflows/`) builds on Linux, macOS, MSYS2 (ncurses), MSVC
   (PDCurses via vcpkg), and **16-bit DOS** (`dos.yml`, OpenWatcom). Beyond
   `meson test`, the cross-platform bar is still "compiles clean everywhere."
+- **Release assets come from three independent workflows** — `appimage.yml`,
+  `dos.yml` and `windows-installer.yml` — each attaching its own artifact to
+  the release. Because they run concurrently there is no point at which CI can
+  know every asset has landed, so `checksums.yml` (which replaces the per-file
+  `.sha256sum` assets with one `SHA256SUMS`) is **`workflow_dispatch` only**:
+  run it by hand once a release looks complete. It is idempotent — re-run it if
+  a late asset appears.
 - Curses is found via `dependency('curses')` with `find_library` fallbacks
   (ncursesw/ncurses/pdcurses). It's a **frontend-only** dependency — nothing in
   `mmail/` includes curses.

@@ -1,0 +1,78 @@
+name: Release checksums
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+# Deliberately manual. The release assets are built by three independent
+# workflows (appimage.yml, dos.yml, windows-installer.yml) that run
+# concurrently, so there is no moment the workflow system can point at and say
+# "every asset now exists" -- a `release: published` trigger fires when the
+# first of them creates the release, which is too early. Run this once the
+# release looks complete; it is idempotent, so run it again if a late asset
+# shows up.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (blank = most recent release)'
+        required: false
+        type: string
+
+jobs:
+  checksums:
+    name: Combine into SHA256SUMS
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ inputs.tag }}
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Resolve the release tag
+      run: |
+        if [ -z "$TAG" ]; then
+          TAG=$(gh release list --limit 1 --json tagName -q '.[0].tagName')
+          if [ -z "$TAG" ]; then
+            echo "no releases found" >&2
+            exit 1
+          fi
+        fi
+        echo "Using release: $TAG"
+        echo "TAG=$TAG" >> "$GITHUB_ENV"
+
+    - name: Download the release assets
+      run: |
+        mkdir assets
+        gh release download "$TAG" --dir assets --pattern '*' --clobber
+        ls -l assets
+
+    - name: Write SHA256SUMS
+      working-directory: assets
+      run: |
+        # Drop the per-file sums this replaces, and any previous combined file,
+        # so re-running doesn't checksum its own output.
+        rm -f SHA256SUMS ./*.sha256sum
+        if [ -z "$(ls -A .)" ]; then
+          echo "the release has no assets to checksum" >&2
+          exit 1
+        fi
+        sha256sum ./* | sed 's|\./||' > SHA256SUMS
+        cat SHA256SUMS
+
+    - name: Upload SHA256SUMS
+      run: gh release upload "$TAG" assets/SHA256SUMS --clobber
+
+    # The combined file supersedes them; leaving both invites the two
+    # disagreeing after a re-upload.
+    - name: Remove the superseded per-file sums
+      run: |
+        gh release view "$TAG" --json assets -q '.assets[].name' \
+          | grep '\.sha256sum$' > old.txt || true
+        while read -r name; do
+          [ -n "$name" ] || continue
+          echo "removing $name"
+          gh release delete-asset "$TAG" "$name" --yes
+        done < old.txt
