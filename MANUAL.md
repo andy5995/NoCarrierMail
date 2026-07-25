@@ -107,6 +107,11 @@ in each packet. To take a vote back before you upload, delete it from
 the REPLY area. Votes need a Synchronet BBS and a packet that includes
 HEADERS.DAT.
 
+The BBS keeps one vote per person per message. If you vote again on a
+message you have already voted on, the BBS ignores the second vote. It
+also ignores a vote for a message that is no longer in its message base.
+Neither case shows an error in NoCarrierMail.
+
 Multiple sort modes are available in the packet and letter lists; you
 can cycle through them by pressing '$'. The default sort modes are set
 in the .ncmailrc.

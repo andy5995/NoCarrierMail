@@ -2,7 +2,8 @@
 
 Developer reference. Source: <https://wiki.synchro.net/ref:qwk>, cross-checked
 against the Synchronet source (`src/sbbs3/msgtoqwk.cpp`, `pack_qwk.cpp`,
-`qwk.cpp`) and against real packets in `~/mmail/down` (`vert.*`, `kd3net.000`).
+`qwk.cpp`, `un_rep.cpp`, `postmsg.cpp`, `src/smblib/`) and against real packets
+in `~/mmail/down` (`vert.*`, `kd3net.000`).
 
 Both files are optional additions to a QWK packet. Both are INI-style text,
 CRLF- or LF-terminated. Both key their sections to the **hexadecimal byte
@@ -73,8 +74,10 @@ Section kinds, named by the voting message's own Message-ID:
 
 - `[poll:<id>]` — a posted poll.
 - `[vote:<id>]` — a ballot. Two distinct kinds, see below.
-- `[close:<id>]` — closure of a previously posted poll, named by
-  `In-Reply-To`; we mark that poll's results closed.
+- `[close:<id>]` — closure of a previously posted poll. The poll it closes is
+  named by `In-Reply-To`, and we mark that poll's results closed. **Untested
+  against real data:** none of the packets here contain a single `close:`
+  section, so this is read off `msgtoqwk.cpp` alone.
 
 Poll sections carry `Subject` (the question), `Sender`, `Conference`,
 `MaxVotes` (1–16, how many answers one ballot may select), `Results`
@@ -93,11 +96,13 @@ Ballots come in two kinds, distinguished by which keys they carry:
 
 ### Things that bit us, or would have
 
-- **The offset marker is nearly useless for reading.** It points at the
-  ballot's own bodyless stub record, not at the message being voted on. To
-  attach a tally to a message you must match `In-Reply-To` against that
-  message's `Message-ID` **from HEADERS.DAT**. Vote support therefore depends
-  on HEADERS.DAT support; there is no other way to identify the target.
+- **The offset marker means different things for ballots and polls.** For a
+  ballot it is useless: it points at the ballot's own bodyless stub, not at the
+  message being voted on, so to attach a tally you must match `In-Reply-To`
+  against that message's `Message-ID` **from HEADERS.DAT**. Vote-count support
+  therefore depends on HEADERS.DAT support; there is no other way to identify
+  the target. For a poll the marker is essential — it is how the poll's record
+  is located and put into the letter index.
 - **`In-Reply-To` is not always an RFC-style message-ID.** Real packets
   contain values like `ANETBBS_f2c2ce96_6a5e96df`. Treat it as an opaque
   string; never parse it.
@@ -107,15 +112,49 @@ Ballots come in two kinds, distinguished by which keys they carry:
 - **Tallies are necessarily partial.** A packet contains only the ballots that
   were exported into it, so a count computed by an offline reader is a floor,
   not the BBS's authoritative total.
+- **Synchronet's own ballot records carry an empty `To` *and* an empty
+  `Subject`** in MESSAGES.DAT — only `From` (the voter) is set. We match the
+  empty `To` but write a descriptive subject ("Upvote: <subject>") anyway, so
+  the entry is identifiable in our REPLY area. Nothing reads either field on
+  import, so the divergence is safe.
 - Voting data also travels in the other direction, in a `.REP`, and we write
   it: `qwkreply::castVote()` packs each vote as a bodyless status-`V` record
   (chunks = 1, msgnum field = ASCII conference number) plus a ballot section
-  in the REP's VOTING.DAT. Synchronet reads it back in `un_rep.cpp` (only for
-  records with status `V` and blocks == 1) via `qwk.cpp:qwk_voting()`.
-  Requirements learned from that code: `Sender` is mandatory (senderless
-  ballots are discarded), `Conference` must match the record's conference
-  number, `In-Reply-To` names the voted-on message, and `WhenWritten` must be
-  present and recent when the BBS enforces `max_qwkmsgage` (a missing date
-  reads as 1970 and gets age-filtered). The `[vote:<id>]` section name is the
-  ballot's own message-ID; Synchronet uses it for duplicate detection, so we
-  generate a unique one per ballot.
+  in the REP's VOTING.DAT. Synchronet reads it back in `un_rep.cpp`, which
+  takes that path only when the record's status is `V`, its block count is 1,
+  **and** the REP actually contains a VOTING.DAT; otherwise the record is
+  logged as a short message and skipped. A body would make the block count 2
+  or more and the record would be imported as an ordinary post, so the
+  no-body/one-chunk shape is the invariant to protect.
+
+  Requirements learned from `qwk.cpp:qwk_vote()` and `postmsg.cpp:votemsg()`:
+  `Sender` is mandatory (senderless ballots are discarded), `Conference` must
+  match the record's conference number, `In-Reply-To` must resolve to a message
+  in that sub via `smb_getmsgidx_by_msgid()` (if it does not, `thread_back`
+  stays 0 and the vote is dropped *silently* — the caller deliberately ignores
+  the error "for old messages"), and `WhenWritten` needs to be present and
+  recent where the BBS sets `max_qwkmsgage`, since a missing date reads as 1970
+  and gets age-filtered.
+
+  Duplicate detection is **not** by the ballot's message-ID: `votemsg()` calls
+  `smb_voted_already(smb, thread_back, from, net_type, net_addr)`, keyed on the
+  voted-on message plus the voter's identity. So a second vote on the same
+  message is rejected even from a different packet, and our own one-vote-per-
+  packet guard is the narrower check of the two. The `[vote:<id>]` section name
+  is just the ballot's own RFC822 Message-ID; we still generate a unique one
+  per ballot.
+
+### Round-trip, confirmed 2026-07-25
+
+A REP containing two ncmail ballots was uploaded to Vertrauen, and the next
+packet (`vert.013`) returned both of them — same generated IDs
+(`<6a643f4b.4.ncmail@VERT>`), same targets, same `Sender` and `Conference`.
+Two things that proves:
+
+- The records import as ballots, not as posts. The only messages of ours in
+  that packet are the four we actually wrote.
+- **Omitting the trailing hex SMB zone on `WhenWritten` is fine.** We write
+  only the ISO form (`20260724234933-0500`); Synchronet parsed it and
+  re-exported it as `20260724234933-0500  fed4`, where `0xfed4` is -300 as a
+  signed 16-bit, i.e. exactly the -0500 we sent. Its parser falls back to the
+  ISO offset when the `sscanf` for the hex field fails.
