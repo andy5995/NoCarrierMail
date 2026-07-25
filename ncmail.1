@@ -19,13 +19,13 @@ provide a better interface to the message base.
 .SH USAGE
 On most screens, a summary of the available keystroke commands is
 displayed in the lower part of the screen. (You can disable this, and
-reclaim some screen real estate, by turning on "ExpertMode".) Note that
-for lack of space, not all commands are listed on every screen where
-they're available. For example, the search functions, which are
-available everywhere, are summarized only in the packet list and address
-book. The principle, albeit not one that's consistently implemented, is
-that the summary need appear only on the first screen where the commands
-are available. When in doubt, try one and see if it works. :-)
+free up some screen space, by turning on "ExpertMode".) Note that to save
+space, not all commands are listed on every screen where they're
+available. For example, the search functions, which are available
+everywhere, are summarized only in the packet list and address book. The
+idea, which is not applied everywhere, is that the summary need appear
+only on the first screen where the commands are available. When in doubt,
+try one and see if it works. :-)
 
 .PP
 In the letter window or ANSI viewer, pressing F1 or '?' will bring up a
@@ -172,8 +172,8 @@ search.
 .PP
 New searches (specified with '/') always start at the beginning of the
 list or message. Repeat searches (with '>' or '.') start with the line
-below the current one. You can take advantage of this to manually adjust
-the starting point for the next search.
+below the current one. You can use this to adjust the starting point for
+the next search.
 
 .PP
 Searches started in the letter, area or packet lists allow the searches
@@ -759,10 +759,10 @@ set for them, are preserved. However, comments are lost.)
 
 .SH NOTES
 Unlike the other archive types, tar/gzip recompresses the entire packet
-when updating the .red flags, so it can be a bit slow. Also, the
-supplied command lines assume GNU tar, which has gzip built-in.
-Separated gunzip/tar and tar/gzip command lines are possible, but would
-require a (simple) external script. NoCarrierMail only checks for the gzip
+when updating the .red flags, so it can be slow. Also, the supplied
+command lines assume GNU tar, which has gzip built-in. Separated
+gunzip/tar and tar/gzip command lines are possible, but would require a
+(simple) external script. NoCarrierMail only checks for the gzip
 signature, and does not actually verify that the gzipped file is a tar
 file.
 
