@@ -1,0 +1,70 @@
+name: Legacy makefiles
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [ master ]
+    paths: &shared_paths
+      - '**'
+      - '!**.yml'
+      - '!**.md'
+      - '**/makefiles.yml'
+
+  pull_request:
+    branches: [ master ]
+    paths: *shared_paths
+
+jobs:
+  source-lists:
+    name: Source lists agree
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v7
+
+    # Covers Makefile.bcc and tclist, which nothing can build here: no runner
+    # has Borland/Turbo C++. It won't catch a bad Borland directive, but it
+    # does catch the realistic mistake -- adding a .cc and forgetting one of
+    # the six places it has to be listed.
+    - name: Check every source is listed everywhere
+      run: sh tools/check-source-lists.sh
+
+  nmake:
+    name: Makefile.vc (MSVC nmake)
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Check out PDCurses
+      uses: actions/checkout@v7
+      with:
+        repository: wmcbrine/PDCurses
+        ref: 2b6a9e920dc14523829b0b9495f2e3281f03cf29
+        path: PDCurses
+
+    - name: Set up MSVC environment
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Build PDCurses (wincon)
+      working-directory: PDCurses/wincon
+      shell: cmd
+      run: nmake -f Makefile.vc
+
+    # Makefile.vc hardcodes CURS_DIR = \pdcurses; an nmake command-line macro
+    # overrides a makefile assignment, so point it at the checkout instead.
+    - name: Build ncmail.exe
+      shell: cmd
+      run: nmake -f Makefile.vc CURS_DIR=%CD%\PDCurses
+
+    - name: Verify the executable
+      shell: pwsh
+      run: |
+        if (-not (Test-Path ncmail.exe)) {
+          Write-Error "ncmail.exe was not produced"
+          exit 1
+        }
+        Get-Item ncmail.exe | Format-List Name, Length
