@@ -25,6 +25,16 @@ extern "C" {
 # error Please upgrade to PDCurses 3.1 or later
 #endif
 
+/* Drawing text on a UTF-8 terminal needs the wide curses API: our buffers
+   hold one byte per column, and handing a raw high byte to the narrow API
+   makes ncurses read it as the lead of a multibyte sequence, which swallows
+   the following characters. Only ncurses tells us whether the wide calls are
+   available; where they aren't, utf8Console stays false anyway, since it is
+   set from nl_langinfo(). */
+#if defined(NCURSES_WIDECHAR) && NCURSES_WIDECHAR
+# define MM_UTF8_OUT
+#endif
+
 #if defined(NCURSES_MOUSE_VERSION) || defined(PDCURSES)
 # define USE_MOUSE
 #endif
@@ -144,6 +154,9 @@ class Win
  protected:
     WINDOW *win;
     chtype *buffer, curratt;
+#ifdef MM_UTF8_OUT
+    wchar_t *wbuffer;
+#endif
  public:
     Win(int, int, int, chtype);
     Win(int, int, int, coltype);

@@ -4,6 +4,10 @@ Revision History
 (in-progress)
 -------------
 
+- On a UTF-8 terminal, draw text through the wide curses API instead of writing
+  raw single bytes, so accented characters no longer disappear or swallow the
+  character next to them. CP437 text is mapped to Unicode for display. (#29)
+
 - Renamed the project from MultiMail to NoCarrierMail. The binary is now
   `ncmail`, the config file is `~/.ncmailrc` (`ncmail.rc` on DOS/Windows), and
   the default data directory is `~/ncmail`. Copy `~/.mmailrc` to `~/.ncmailrc`

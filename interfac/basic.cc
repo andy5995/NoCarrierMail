@@ -24,6 +24,9 @@ Win::Win(int height, int width, int topline, coltype backg)
 Win::~Win()
 {
     delete[] buffer;
+#ifdef MM_UTF8_OUT
+    delete[] wbuffer;
+#endif
     delwin(win);
 }
 
@@ -33,6 +36,9 @@ void Win::init(int height, int width, int topline)
 
     win = newwin(height, width, topline, (COLS - width) / 2);
     buffer = new chtype[width + 1];
+#ifdef MM_UTF8_OUT
+    wbuffer = new wchar_t[width + 1];
+#endif
     keypad(win, TRUE);
     cursor_off();
 }
@@ -100,6 +106,12 @@ int Win::put(int y, int x, const char *z, int len)
     chtype z2;
     int counter = 0, limit = getmaxx(win) - x;
 
+#ifdef MM_UTF8_OUT
+    const bool wideout = utf8Console;
+#else
+    const bool wideout = false;
+#endif
+
     if ((-1 == len) || (len > limit))
         len = limit;
 
@@ -142,11 +154,25 @@ int Win::put(int y, int x, const char *z, int len)
             if (isoConsole)
                 z2 = '?';
             else
-                z2 |= A_ALTCHARSET;
+                if (!wideout)
+                    z2 |= A_ALTCHARSET;
         }
         buffer[counter++] = z2 | curratt;
     }
-    mvwaddchnstr(win, y, x, buffer, counter);
+
+#ifdef MM_UTF8_OUT
+    if (wideout) {
+        // attrib() sets curratt and the window attribute together, so the
+        // wide string is drawn with the colors the caller asked for.
+        for (int i = 0; i < counter; i++) {
+            unsigned char c = buffer[i] & A_CHARTEXT;
+            wbuffer[i] = isoConsole ? (wchar_t) c : cp437_to_uni[c];
+        }
+        wbuffer[counter] = L'\0';
+        mvwaddnwstr(win, y, x, wbuffer, counter);
+    } else
+#endif
+        mvwaddchnstr(win, y, x, buffer, counter);
 
     return counter;
 }

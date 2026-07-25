@@ -16,6 +16,10 @@ extern bool utf8Console; // terminal encoding is UTF-8 (from CODESET)
 extern const char *dos2isotab;
 extern const char *iso2dostab;
 
+#ifdef MM_UTF8_OUT
+extern const wchar_t cp437_to_uni[256];
+#endif
+
 char *charconv_in(char *);
 char *charconv_out(char *);
 char *letterconv_in(char *);
