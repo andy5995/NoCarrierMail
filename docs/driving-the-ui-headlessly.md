@@ -59,6 +59,13 @@ mail directories unless you edit them — decide which you want before running.
 - **`ESC` is sensed only after a delay under ncurses,** which `MANUAL.md` warns
   about; a scripted `Escape` may appear to be ignored entirely. Send the raw byte
   (`tmux send-keys -H 1b`) instead of relying on it.
+- **A key that does nothing under `send-keys` is not evidence of a bug.** The
+  charset toggle `C` produced no visible change for me on any screen and I was
+  ready to call it broken; it works every time by hand. Check a suspect key
+  interactively before concluding anything. Note that its popup is not
+  transient — nothing erases a popup until another window draws over it, so a
+  missing popup means the keystroke probably never arrived, not that it came and
+  went. Confirm delivery with a key whose effect is lasting and visible.
 
 For a small change to an already-written reply, editing the `.REP` directly can
 beat driving the UI: it is a zip holding one `<BBSID>.MSG` file in plain QWK
