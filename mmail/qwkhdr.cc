@@ -36,6 +36,25 @@ bool iniKeyEq(const char *a, const char *b)
     return (*a == *b);
 }
 
+bool iniSplit(char *line, char *&key, char *&value)
+{
+    char *colon = strchr(line, ':');
+    char *equals = strchr(line, '=');
+    char *sep;
+    if (colon && equals)
+        sep = (colon < equals) ? colon : equals;
+    else
+        sep = colon ? colon : equals;
+
+    if (!sep)
+        return false;
+
+    *sep = '\0';
+    key = iniTrim(line);
+    value = iniTrim(sep + 1);
+    return true;
+}
+
 qwkHeaders::qwkHeaders()
 {
     head = 0;
@@ -88,20 +107,8 @@ void qwkHeaders::parse(const char *text)
                 cur = s;
             }
         } else if (*t && cur) {
-            // Field line: "Key: Value" or "Key = Value". Split on whichever
-            // separator comes first, so values may contain the other one.
-            char *colon = strchr(t, ':');
-            char *equals = strchr(t, '=');
-            char *sep;
-            if (colon && equals)
-                sep = (colon < equals) ? colon : equals;
-            else
-                sep = colon ? colon : equals;
-
-            if (sep) {
-                *sep = '\0';
-                char *key = iniTrim(t);
-                char *value = iniTrim(sep + 1);
+            char *key, *value;
+            if (iniSplit(t, key, value)) {
                 if (*key) {
                     field *f = new field;
                     f->key = strdupplus(key);

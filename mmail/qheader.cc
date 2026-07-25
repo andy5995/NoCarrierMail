@@ -48,6 +48,7 @@ bool qheader::init(FILE *datFile)
     msglen = (atol(buf) - 1) * 128;
 
     privat = (qh.status == '*') || (qh.status == '+');
+    status = qh.status;
 
     // Is this a block of net-status flags?
     netblock = !qh.status || (qh.status == '\xff');
@@ -69,10 +70,18 @@ bool qheader::init_short(FILE *datFile)
 
     get_field(to, qh.to, 25);
 
+    status = qh.status;
+
     strnzcpy(buf, qh.chunks, 6);
     rawlen = strtol(buf, &err, 10);
     if ((*err && *err != ' ') || (rawlen < 2)) {
-        netblock = true;    // bad header, keep scanning
+        // A one-chunk record is a header with no body: how Synchronet writes
+        // a poll or ballot (status 'V'). Anything else here is a bad header.
+        // Either way keep scanning; readIndices() decides what to index, so
+        // fill in the fields it needs to make that call.
+        netblock = true;
+        msglen = 0;
+        origArea = getshort(&qh.confLSB);
         return true;
     }
 

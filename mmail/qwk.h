@@ -41,6 +41,7 @@ class qheader {
     long msglen;
     int origArea;
     long msgnum, refnum;
+    char status;
     bool privat, netblock;
 
     bool init(FILE *);
@@ -67,6 +68,7 @@ class qwkpack : public pktbase
     void loadHeaders();
     void loadVoting();
 
+    letter_body *getBody(letter_header &);
     void getblk(int, long &, long, unsigned char *&, unsigned char *&);
     void postfirstblk(unsigned char *&, letter_header &);
     void endproc(letter_header &);

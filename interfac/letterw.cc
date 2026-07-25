@@ -497,7 +497,8 @@ void LetterWindow::UpdateHeader()
             if (mm.areaList->isReplyArea())
                 if (p != tmp)
                     netAdd(p);
-        }
+        } else
+            *tmp = '\0';        // or the From line, still in tmp, is shown
     } else
         strnzcpy(tmp, (const char *) mm.letterList->getNetAddr(),
                  maxToFromWidth);

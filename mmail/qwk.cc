@@ -53,10 +53,11 @@ qwkpack::qwkpack() : pktbase()
     if (!infile)
         fatalError("Could not open MESSAGES.DAT");
 
+    loadVoting();
+
     readIndices();
 
     loadHeaders();
-    loadVoting();
 
     listBulletins((const char (*)[13]) newsfile, 1);
 }
@@ -239,7 +240,12 @@ void qwkpack::readIndices()
 
     numMsgs = 0;
 
-    if (mm.res.getInt(IgnoreNDX) || !externalIndex()) {
+    // Polls are records with no body, which Synchronet leaves out of the .NDX
+    // files (and out of a conference's .NDX entirely, if a poll was all it
+    // had). When the packet has any, index from MESSAGES.DAT instead, so they
+    // can be indexed alongside everything else.
+
+    if (mm.res.getInt(IgnoreNDX) || votes.getNoOfPolls() || !externalIndex()) {
         ndx_fake base, *tmpndx = &base;
 
         long counter;
@@ -248,9 +254,16 @@ void qwkpack::readIndices()
         qheader qHead;
 
         fseek(infile, 128, SEEK_SET);
-        while (qHead.init_short(infile))
-            if (!qHead.netblock) {      // skip net-status flags
-                counter = ftell(infile);
+        while (qHead.init_short(infile)) {
+            counter = ftell(infile);
+
+            // A poll has no body, so init_short() cannot tell it from a bad
+            // header and flags it as one. Index it anyway -- its text comes
+            // from VOTING.DAT, via getBody().
+
+            bool isPoll = ('V' == qHead.status) && votes.isPoll(counter - 128);
+
+            if (!qHead.netblock || isPoll) {    // skip net-status flags
                 x = getXNum(qHead.origArea);
 
                 if (-1 != x) {
@@ -276,6 +289,7 @@ void qwkpack::readIndices()
 
                 fseek(infile, qHead.msglen, SEEK_CUR);
             }
+        }
 
         initBody(base.next, personal);
     }
@@ -396,6 +410,12 @@ letter_header *qwkpack::getNextLetter()
         votes.get(headers.get(pos, "Message-ID"), upVotes, downVotes);
     }
 
+    // A poll is not written to HEADERS.DAT, so its record carries only the
+    // 25-char subject; VOTING.DAT has the whole question.
+    const char *psubj = votes.getPollSubject(pos);
+    if (psubj)
+        lsubj = psubj;
+
     char ddate[40];
     qwkDispDate(ddate, sizeof ddate, q.date);
 
@@ -410,6 +430,26 @@ letter_header *qwkpack::getNextLetter()
     delete[] csubj;
 
     return newLetter;
+}
+
+// A poll's record in MESSAGES.DAT is a header with no body; its question,
+// answers and vote counts live in VOTING.DAT. Render those instead.
+
+letter_body *qwkpack::getBody(letter_header &mhead)
+{
+    bodytype *areaP = body[mhead.getAreaID() - 1];
+
+    if (areaP) {
+        char *text = votes.getPollText(areaP[mhead.getLetterID()].pointer -
+                                       128);
+        if (text) {
+            delete bodyString;
+            bodyString = new letter_body(text, strlen(text));
+            return bodyString;
+        }
+    }
+
+    return pktbase::getBody(mhead);
 }
 
 void qwkpack::getblk(int, long &offset, long blklen,

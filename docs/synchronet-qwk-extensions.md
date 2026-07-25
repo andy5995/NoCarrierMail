@@ -40,12 +40,21 @@ the **status byte `V`** (ASCII 86) at offset 0 of its header block. Such a
 message **has no body block** — it occupies one 128-byte header record and
 nothing more. Synchronet also omits it from the `.NDX` files
 (`pack_qwk.cpp`: the index write is guarded by `size > 0`), so a reader that
-indexes from `.NDX` never sees these stubs. We do not see them on the
-`.DAT`-scanning path either, but only by accident: a stub's chunk count is 1,
-and `qheader::init_short()` already rejects anything below 2 as an unparseable
-header. No explicit `V` check is needed — one was written and then removed
-after an A/B against the pre-change binary showed the counts were already
-identical.
+indexes from `.NDX` never sees these stubs. Nor does the `.DAT`-scanning path
+by default: a stub's chunk count is 1, and `qheader::init_short()` rejects
+anything below 2 as an unparseable header.
+
+That is fine for ballots, which have nothing to show, but a **poll** is a
+message the user should be able to read. So `qwkpack::readIndices()` forces
+the `.DAT`-scanning path whenever the packet has any polls, and admits a
+one-chunk record when its status byte is `V` and VOTING.DAT has a poll at that
+offset. Forcing the scan is what makes a poll reachable at all when it was the
+only new item in its conference: Synchronet then writes a zero-length `.NDX`
+and deletes it, so there is no index file for that conference to extend.
+
+A poll's body is synthesized from VOTING.DAT by `qwkpack::getBody()`, and its
+subject comes from the poll section's `Subject` — a poll is *not* written to
+HEADERS.DAT, so its record carries only the 25-character subject field.
 
 Each entry is **two sections**: an empty `[<hex offset>]` marker followed
 immediately by the section that holds the data.
@@ -64,7 +73,8 @@ Section kinds, named by the voting message's own Message-ID:
 
 - `[poll:<id>]` — a posted poll.
 - `[vote:<id>]` — a ballot. Two distinct kinds, see below.
-- `[close:<id>]` — closure of a previously posted poll.
+- `[close:<id>]` — closure of a previously posted poll, named by
+  `In-Reply-To`; we mark that poll's results closed.
 
 Poll sections carry `Subject` (the question), `Sender`, `Conference`,
 `MaxVotes` (1–16, how many answers one ballot may select), `Results`

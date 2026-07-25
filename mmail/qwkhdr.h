@@ -19,6 +19,10 @@
 char *iniTrim(char *);
 // Case-insensitive whole-string compare (no strcasecmp/stricmp dependency).
 bool iniKeyEq(const char *, const char *);
+// Split a "Key: Value" / "Key = Value" line in place, on whichever separator
+// comes first (so values may contain the other one). Trims both parts.
+// Returns false when the line has no separator.
+bool iniSplit(char *line, char *&key, char *&value);
 
 class qwkHeaders {
     struct field {
