@@ -88,17 +88,23 @@ class qwkreply : public pktreply
     class upl_qwk : public upl_base {
      public:
         qheader qHead;
+        long recpos;            // record offset in the .MSG, for readback
+        int voteDir;            // 0 = regular reply; 1 = up, -1 = down
+        char *voteTarget;       // voted-on message's ID (In-Reply-To)
+        char *voteID;           // the ballot's own message-ID
 
         upl_qwk(const char * = 0);
+        ~upl_qwk();
     };
 
     bool qwke, greekqwk;
 
-    FILE *hdrFile;
-    bool hdrsWritten;
+    FILE *hdrFile, *votFile;
+    bool hdrsWritten, votesWritten;
 
     bool getRep1(FILE *, upl_qwk *);
     void getReplies(FILE *);
+    void readbackVotes();
     void addRep1(FILE *, upl_base *, int);
     void addHeader(FILE *);
     void repFinish();
@@ -110,6 +116,8 @@ class qwkreply : public pktreply
     area_header *getNextArea();
     letter_header *getNextLetter();
     void enterLetter(letter_header &, const char *, long);
+    bool castVote(const char *, int, const char *, const char *, bool);
+    bool isVote(int);
     bool getOffConfig();
     bool makeOffConfig();
 };

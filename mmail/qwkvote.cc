@@ -13,6 +13,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 }
 
 // Longest answer label kept on one line, and the longest bar drawn for the
@@ -441,4 +442,30 @@ char *qwkVoting::getPollText(unsigned long offset) const
         sprintf(o, "\nNo ballots for this poll in this packet.\n");
 
     return out;
+}
+
+void qwkVoteDate(char *dest, time_t t)
+{
+    struct tm lt = *localtime(&t);
+    struct tm gt = *gmtime(&t);
+
+    long off = ((long) lt.tm_hour - gt.tm_hour) * 60 +
+               lt.tm_min - gt.tm_min;
+
+    // Around midnight the two can sit on different days; at New Year the
+    // year wraps too, flipping tm_yday's sign.
+    int daydiff = lt.tm_yday - gt.tm_yday;
+    if (daydiff > 1)
+        daydiff = -1;
+    else if (daydiff < -1)
+        daydiff = 1;
+    off += daydiff * 24L * 60;
+
+    char sign = (off < 0) ? '-' : '+';
+    if (off < 0)
+        off = -off;
+
+    sprintf(dest, "%04d%02d%02d%02d%02d%02d%c%02ld%02ld",
+            lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday,
+            lt.tm_hour, lt.tm_min, lt.tm_sec, sign, off / 60, off % 60);
 }

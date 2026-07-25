@@ -7,6 +7,10 @@
 #include "test.h"
 #include "../mmail/qwkvote.h"
 
+extern "C" {
+#include <ctype.h>
+}
+
 int main()
 {
     // A VOTING.DAT as Synchronet's msgtoqwk.cc writes it: each entry is an
@@ -241,6 +245,21 @@ int main()
     qwkVoting n;
     n.parse(no);
     CHECK(!n.any());
+
+    // qwkVoteDate: "YYYYMMDDHHMMSS+hhmm" -- 19 chars, all digits except the
+    // sign. (The wall-clock value depends on the host zone, so only the
+    // shape is checked.)
+    char stamp[24];
+    qwkVoteDate(stamp, (time_t) 1750000000);
+    CHECK(strlen(stamp) == 19);
+    CHECK(stamp[14] == '+' || stamp[14] == '-');
+    {
+        bool digits = true;
+        for (int i = 0; i < 19; i++)
+            if (i != 14 && !isdigit((unsigned char) stamp[i]))
+                digits = false;
+        CHECK(digits);
+    }
 
     // Parsing empty / null input is harmless
     qwkVoting empty;

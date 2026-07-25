@@ -1107,6 +1107,10 @@ void LetterWindow::KeyHandle(int key)
             switch(key) {
             case 'R':
             case 'E':
+                if (mm.reply->isVote((int) mm.letterList->getMsgNum())) {
+                    ui.nonFatalError("A vote cannot be edited");
+                    break;
+                }
                 EditLetter(false);
                 ui.redraw();
                 break;
@@ -1115,6 +1119,8 @@ void LetterWindow::KeyHandle(int key)
                 ui.kill_letter();
                 break;
             case 2:                     // Ctrl-B
+                if (mm.reply->isVote((int) mm.letterList->getMsgNum()))
+                    break;
                 SplitLetter();
                 ui.redraw();
                 break;
@@ -1172,9 +1178,49 @@ void LetterWindow::KeyHandle(int key)
             case 'T':
                 GetTagline();
                 break;
+            case 'W':
+                VoteMenu();
+                break;
             default:
                 Move(key);
             }
         }
     }
+}
+
+// Cast an up/down vote on the current message (Synchronet QWK packets
+// only). The vote travels to the BBS in the reply packet.
+void LetterWindow::VoteMenu()
+{
+    static const char *voteopts[] = { "Upvote", "Downvote", "Quit" };
+
+    const char *msgid = mm.letterList->getMsgID();
+    if (!mm.synchro || !msgid || !*msgid) {
+        ui.nonFatalError("Voting needs a Synchronet packet with HEADERS.DAT");
+        return;
+    }
+
+    int z = ui.WarningWindow("Vote on this message?", voteopts, 3);
+    if (!z)
+        return;
+
+    int orgarea = mm.areaList->getAreaNo();
+    mm.areaList->gotoArea(mm.letterList->getAreaID());
+
+    bool usealias = mm.areaList->getUseAlias();
+    const char *name = usealias ? mm.packet->getAliasName() : 0;
+    if (!name || !*name)
+        name = mm.packet->getLoginName();
+
+    bool ok = mm.areaList->enterVote(mm.letterList->getAreaID(), msgid,
+                  name, mm.letterList->getSubject(), (2 == z));
+
+    mm.areaList->gotoArea(orgarea);
+
+    if (ok)
+        ui.setUnsaved();
+    else
+        ui.nonFatalError("Could not vote (already voted in this packet?)");
+
+    ui.redraw();
 }

@@ -274,6 +274,7 @@ class area_list
     void enterLetter(int, const char *, const char *, const char *,
                      const char *, const char *, int, bool,
                      net_address &, const char *, long);
+    bool enterVote(int, const char *, const char *, const char *, bool);
     void killLetter(int, long);
     void refreshArea();
     void gotoArea(int);
@@ -516,6 +517,9 @@ class reply_driver : public specific_driver
     virtual bool checkForReplies() = 0;
     virtual void init() = 0;
     virtual void enterLetter(letter_header &, const char *, long) = 0;
+    virtual bool castVote(const char *, int, const char *, const char *,
+                          bool) = 0;
+    virtual bool isVote(int) = 0;
     virtual void killLetter(int) = 0;
     virtual area_header *refreshArea() = 0;
     virtual bool makeReply() = 0;

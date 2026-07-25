@@ -420,7 +420,8 @@ letter_header *qwkpack::getNextLetter()
     qwkDispDate(ddate, sizeof ddate, q.date);
 
     letter_header *newLetter = new letter_header(lsubj, lto, lfrom, ddate,
-        0, q.refnum, letterID, q.msgnum, areaID, q.privat, q.msglen, this,
+        headers.get(pos, "Message-ID"), q.refnum, letterID, q.msgnum,
+        areaID, q.privat, q.msglen, this,
         nullNet, !(!(areas[areaID].attr & LATINCHAR)));
 
     newLetter->setVotes(upVotes, downVotes);
@@ -732,14 +733,23 @@ const char *qwkpack::ctrlName()
 qwkreply::upl_qwk::upl_qwk(const char *name) : pktreply::upl_base(name)
 {
     memset(&qHead, 0, sizeof(qHead));
+    recpos = 0;
+    voteDir = 0;
+    voteTarget = voteID = 0;
+}
+
+qwkreply::upl_qwk::~upl_qwk()
+{
+    delete[] voteTarget;
+    delete[] voteID;
 }
 
 qwkreply::qwkreply() : pktreply()
 {
     qwke = ((qwkpack *) mm.packet)->isQWKE();
     greekqwk = ((qwkpack *) mm.packet)->isGreekQWK();
-    hdrFile = 0;
-    hdrsWritten = false;
+    hdrFile = votFile = 0;
+    hdrsWritten = votesWritten = false;
 }
 
 qwkreply::~qwkreply()
@@ -834,15 +844,101 @@ void qwkreply::getReplies(FILE *repFile)
     upl_qwk baseUplList, *currUplList = &baseUplList;
 
     while (!feof(repFile)) {
-        currUplList->nextRecord = new upl_qwk;
-        currUplList = (upl_qwk *) currUplList->nextRecord;
-        if (!getRep1(repFile, currUplList)) {
-            delete currUplList;
+        // Link the node only once its record parses, so the last node's
+        // nextRecord can't be left dangling at the deleted EOF allocation
+        // (castVote() and readbackVotes() walk the chain by pointer, not
+        // by count).
+        long pos = ftell(repFile);
+        upl_qwk *n = new upl_qwk;
+        n->recpos = pos;
+        if (!getRep1(repFile, n)) {
+            delete n;
             break;
         }
+        currUplList->nextRecord = n;
+        currUplList = n;
         noOfLetters++;
     }
     uplListHead = baseUplList.nextRecord;
+
+    readbackVotes();
+}
+
+// Re-attach vote metadata to the 'V' records just read back from the .MSG,
+// by matching their offsets against the marker sections of the packet's own
+// VOTING.DAT. A 'V' record with no section stays voteDir 0; it is repacked
+// as-is and the BBS ignores it.
+void qwkreply::readbackVotes()
+{
+    FILE *votes = upWorkList->ftryopen("voting.dat");
+    if (!votes)
+        return;
+
+    char *buf = 0;
+    long size = upWorkList->getSize();
+    if (size > 0) {
+        buf = new char[size + 1];
+        size_t got = fread(buf, 1, size, votes);
+        buf[got] = '\0';
+    }
+    fclose(votes);
+    if (!buf)
+        return;
+
+    unsigned long marker = 0;
+    upl_qwk *cur = 0;       // entry the current [vote:...] section belongs to
+    char *line = buf;
+
+    while (line) {
+        char *nl = strchr(line, '\n');
+        if (nl)
+            *nl = '\0';
+
+        char *t = iniTrim(line);
+
+        if (*t == '[') {
+            char *close = strchr(t, ']');
+            if (close) {
+                *close = '\0';
+                char *sep = strchr(t + 1, ':');
+                if (!sep) {
+                    marker = strtoul(t + 1, 0, 16);
+                    cur = 0;
+                } else {
+                    *sep = '\0';
+                    cur = 0;
+                    if (iniKeyEq(t + 1, "vote"))
+                        for (upl_qwk *l = (upl_qwk *) uplListHead; l;
+                             l = (upl_qwk *) l->nextRecord)
+                            if (('V' == l->qHead.status) &&
+                                ((unsigned long) l->recpos == marker)) {
+                                cur = l;
+                                delete[] cur->voteID;
+                                cur->voteID = strdupplus(sep + 1);
+                                break;
+                            }
+                }
+            }
+        } else if (*t && cur) {
+            char *key, *value;
+            if (iniSplit(t, key, value)) {
+                if (iniKeyEq(key, "In-Reply-To")) {
+                    delete[] cur->voteTarget;
+                    cur->voteTarget = strdupplus(value);
+                } else if (iniKeyEq(key, "UpVote")) {
+                    if (iniKeyEq(value, "true"))
+                        cur->voteDir = 1;
+                } else if (iniKeyEq(key, "DownVote")) {
+                    if (iniKeyEq(value, "true"))
+                        cur->voteDir = -1;
+                }
+            }
+        }
+
+        line = nl ? (nl + 1) : 0;
+    }
+
+    delete[] buf;
 }
 
 area_header *qwkreply::getNextArea()
@@ -906,6 +1002,62 @@ void qwkreply::enterLetter(letter_header &newLetter,
     addUpl(newList);
 }
 
+// Cast a vote: a REPLY-area entry that packs as a bodyless status-'V'
+// record plus a ballot section in the REP's VOTING.DAT (the mirror image
+// of what we read; see docs/synchronet-qwk-extensions.md). Synchronet
+// discards senderless ballots and rejects a Conference mismatch, so both
+// fields matter. One ballot per message per packet.
+bool qwkreply::castVote(const char *msgid, int conf, const char *sender,
+                        const char *subject, bool up)
+{
+    if (!msgid || !*msgid || !sender || !*sender)
+        return false;
+
+    for (upl_qwk *l = (upl_qwk *) uplListHead; l;
+         l = (upl_qwk *) l->nextRecord)
+        if (l->voteDir && !strcasecmp(l->voteTarget, msgid))
+            return false;       // already voted on it in this packet
+
+    const char *datefmt_qwk = "%m-%d-%y %H:%M";
+
+    upl_qwk *n = new upl_qwk;   // no body: the file is never created
+
+    sprintf(n->qHead.subject, "%s: %.60s", up ? "Upvote" : "Downvote",
+            subject ? subject : "");
+    strnzcpy(n->qHead.from, sender, sizeof(n->qHead.from) - 1);
+
+    // No recipient: Synchronet's own ballot records leave To empty, and
+    // nothing reads the field on import (un_rep.cpp uses only the record's
+    // offset, status byte and block count).
+
+    n->qHead.msgnum = conf;
+    n->qHead.status = 'V';
+
+    time_t now = time(0);
+    strftime(n->qHead.date, 15, datefmt_qwk, localtime(&now));
+
+    n->voteDir = up ? 1 : -1;
+    n->voteTarget = strdupplus(msgid);
+
+    char id[80];
+    sprintf(id, "<%lx.%d.ncmail@%.40s>", (unsigned long) now,
+            noOfLetters + 1, getBaseName());
+    n->voteID = strdupplus(id);
+
+    addUpl(n);
+    return true;
+}
+
+bool qwkreply::isVote(int letterNo)
+{
+    upl_qwk *l = (upl_qwk *) uplListHead;
+
+    for (int c = 1; l && (c < letterNo); c++)
+        l = (upl_qwk *) l->nextRecord;
+
+    return l && l->voteDir;
+}
+
 void qwkreply::addRep1(FILE *rep, upl_base *node, int c)
 {
     FILE *replyFile;
@@ -914,12 +1066,36 @@ void qwkreply::addRep1(FILE *rep, upl_base *node, int c)
     char linebreak = greekqwk ? ((char) 12) : ((char) 227);
 
     if (c == 0) {
-        hdrFile = 0;
-        hdrsWritten = false;
+        hdrFile = votFile = 0;
+        hdrsWritten = votesWritten = false;
     }
 
     long headerpos = ftell(rep);
     l->qHead.output(rep);
+
+    // A vote packs as just the header record (chunks = 1, no body) and a
+    // ballot section in VOTING.DAT. The key order and separators mirror
+    // Synchronet's own writer (msgtoqwk.cpp).
+    if (l->voteDir) {
+        if (!votFile)
+            votFile = fopen("VOTING.DAT", "wb");
+        if (votFile) {
+            char when[24];
+            qwkVoteDate(when, time(0));
+            fprintf(votFile, "[%lx]\r\n", (unsigned long) headerpos);
+            fprintf(votFile, "[vote:%s]\r\n", l->voteID);
+            fprintf(votFile, "%sVote = true\r\n",
+                    (l->voteDir > 0) ? "Up" : "Down");
+            fprintf(votFile, "In-Reply-To: %s\r\n", l->voteTarget);
+            fprintf(votFile, "WhenWritten:  %s\r\n", when);
+            fprintf(votFile, "Sender: %s\r\n", l->qHead.from);
+            fprintf(votFile, "Conference: %ld\r\n", l->qHead.msgnum);
+            fprintf(votFile, "\r\n");
+            votesWritten = true;
+        }
+        l->qHead.set_length(rep, headerpos, ftell(rep));
+        return;
+    }
 
     bool longfrom = strlen(l->qHead.from) > 25;
     bool longto = strlen(l->qHead.to) > 25;
@@ -983,6 +1159,10 @@ void qwkreply::repFinish()
         fclose(hdrFile);
         hdrFile = 0;
     }
+    if (votFile) {
+        fclose(votFile);
+        votFile = 0;
+    }
 }
 
 void qwkreply::addHeader(FILE *repFile)
@@ -1013,6 +1193,8 @@ const char *qwkreply::repTemplate(bool offres)
 
     if (hdrsWritten)
         sprintf(buff + strlen(buff), " HEADERS.DAT");
+    if (votesWritten)
+        sprintf(buff + strlen(buff), " VOTING.DAT");
 
     return buff;
 }

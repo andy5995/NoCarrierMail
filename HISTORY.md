@@ -10,6 +10,9 @@ Revision History
 - Show Synchronet polls. A poll now appears as a message in its conference,
   with the question, the answers and a bar chart of the votes in the packet.
 
+- Cast up/down votes on messages ('W' in the letter window, Synchronet QWK
+  packets only). Votes are carried to the BBS in the reply packet.
+
 - Stop showing the sender's name in the "To" field of a message that has no
   recipient.
 

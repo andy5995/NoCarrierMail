@@ -134,7 +134,11 @@ void qheader::output(FILE *repFile)
     memcpy(qh.date, date, 8);
     memcpy(qh.time, &date[9], 5);
 
-    if (privat)
+    // 'V' (a Synchronet vote record) survives the reply round-trip; for
+    // everything else the private flag decides, as it always has.
+    if ('V' == status)
+        qh.status = 'V';
+    else if (privat)
         qh.status = '*';
 
     fwrite(&qh, 1, sizeof qh, repFile);

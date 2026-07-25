@@ -145,7 +145,7 @@ void HelpWindow::h_letterlist()
 
 void HelpWindow::h_letter(bool isAnsi)
 {
-    enum {width = 60, citems = 19, regitems = 7, repitems = 3, ansitems = 13};
+    enum {width = 60, citems = 19, regitems = 8, repitems = 3, ansitems = 13};
 
     static const char *common[citems] = {
         "S - Save letter",
@@ -174,7 +174,8 @@ void HelpWindow::h_letter(bool isAnsi)
         "N - Netmail/Email reply",
         "T - Take tagline",
         "M - Mark/unmark letter",
-        "U - Unread/read toggle"
+        "U - Unread/read toggle",
+        "W - vote up/down on message"
     }, *reply[] = {
         "K - Kill letter",
         "E, R - [Re-]Edit letter",
@@ -196,15 +197,18 @@ void HelpWindow::h_letter(bool isAnsi)
         "Q - Quit ANSI viewer"
     };
 
-    int extras = isAnsi ? ansitems : mm.areaList->isReplyArea() ?
-                 repitems : regitems;
+    bool isReply = mm.areaList->isReplyArea();
+
+    int extras = isAnsi ? ansitems : isReply ? repitems : regitems;
     int usecommon = isAnsi ? 0 : citems;
     int height = ((extras + usecommon + 1) >> 1) + 4;
 
     menu = new ShadowedWin(height, width, (LINES - height) >> 1, C_HELP3);
     menu->attrib(C_HELP4);
 
-    const char **extchar = isAnsi ? ansi : ((extras == 7) ? regular : reply);
+    // Pick the list the same way extras was counted; keying off the count
+    // meant adding an entry silently selected the wrong (shorter) array.
+    const char **extchar = isAnsi ? ansi : (isReply ? reply : regular);
 
     int x, line = 0;
 

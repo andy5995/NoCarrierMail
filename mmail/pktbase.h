@@ -117,6 +117,8 @@ class pktreply : public reply_driver
     ~pktreply();
     bool checkForReplies();
     void init();
+    bool castVote(const char *, int, const char *, const char *, bool);
+    bool isVote(int);
     int getNoOfAreas();
     void selectArea(int);
     int getNoOfLetters();

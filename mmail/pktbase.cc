@@ -554,6 +554,18 @@ void pktreply::uncompress()
     delete[] tmppath;
 }
 
+// Casting votes is a Synchronet QWK extension; other formats can't.
+
+bool pktreply::castVote(const char *, int, const char *, const char *, bool)
+{
+    return false;
+}
+
+bool pktreply::isVote(int)
+{
+    return false;
+}
+
 int pktreply::getNoOfAreas()
 {
     return 1;

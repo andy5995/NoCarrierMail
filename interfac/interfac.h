@@ -522,6 +522,7 @@ class LetterWindow
     void write_to_file(FILE *);
     void ViewExternal();
     void GetTagline();
+    void VoteMenu();
     bool Previous();
     void NextDown();
     void MakeChain(int, bool = false);

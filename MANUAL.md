@@ -92,6 +92,13 @@ answer.
 Vote counts only include the votes that came with the packet, so they
 may be lower than the counts on the BBS.
 
+You can also cast your own vote. While reading a message, press W and
+choose Upvote or Downvote. The vote is added to the REPLY area and
+travels to the BBS in your reply packet. You can vote once per message
+in each packet. To take a vote back before you upload, delete it from
+the REPLY area. Votes need a Synchronet BBS and a packet that includes
+HEADERS.DAT.
+
 Multiple sort modes are available in the packet and letter lists; you
 can cycle through them by pressing '$'. The default sort modes are set
 in the .ncmailrc.

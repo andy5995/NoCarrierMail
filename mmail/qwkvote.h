@@ -7,6 +7,10 @@
 #ifndef QWKVOTE_H
 #define QWKVOTE_H
 
+extern "C" {
+#include <time.h>
+}
+
 /* Parses a Synchronet VOTING.DAT file. The file is .ini-style; each entry is
    an empty "[<hex offset>]" section followed by a "[vote:<id>]",
    "[poll:<id>]" or "[close:<id>]" section. Two kinds of thing are collected:
@@ -105,5 +109,11 @@ class qwkVoting {
     // string (caller deletes[] it), or 0 if no poll sits at that offset.
     char *getPollText(unsigned long offset) const;
 };
+
+// Format a local timestamp the way Synchronet's VOTING.DAT expects:
+// "YYYYMMDDHHMMSS+hhmm" (ISO-8601 basic, with the UTC offset). dest must
+// hold at least 20 bytes. strftime's %z is not portable to the old DOS
+// toolchains, so the offset comes from the localtime/gmtime difference.
+void qwkVoteDate(char *dest, time_t t);
 
 #endif

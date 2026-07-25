@@ -439,6 +439,22 @@ void area_list::enterLetter(int areaNo, const char *from, const char *to,
     refreshArea();
 }
 
+// Cast an up/down vote on a message in area areaNo. The vote becomes an
+// entry in the REPLY area, carried to the BBS in the reply packet.
+bool area_list::enterVote(int areaNo, const char *msgid, const char *sender,
+                          const char *subject, bool up)
+{
+    gotoArea(areaNo);
+
+    if (!mm.reply->castVote(msgid, atoi(getShortName()), sender,
+                            subject, up))
+        return false;
+
+    areaHeader[current]->addReply();
+    refreshArea();
+    return true;
+}
+
 void area_list::killLetter(int areaNo, long letterNo)
 {
     areaHeader[areaNo]->killReply();

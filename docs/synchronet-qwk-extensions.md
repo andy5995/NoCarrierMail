@@ -107,5 +107,15 @@ Ballots come in two kinds, distinguished by which keys they carry:
 - **Tallies are necessarily partial.** A packet contains only the ballots that
   were exported into it, so a count computed by an offline reader is a floor,
   not the BBS's authoritative total.
-- Voting data can also travel in the other direction, in a `.REP`; Synchronet
-  reads it back in `qwk.cpp:qwk_voting()`. We do not write it.
+- Voting data also travels in the other direction, in a `.REP`, and we write
+  it: `qwkreply::castVote()` packs each vote as a bodyless status-`V` record
+  (chunks = 1, msgnum field = ASCII conference number) plus a ballot section
+  in the REP's VOTING.DAT. Synchronet reads it back in `un_rep.cpp` (only for
+  records with status `V` and blocks == 1) via `qwk.cpp:qwk_voting()`.
+  Requirements learned from that code: `Sender` is mandatory (senderless
+  ballots are discarded), `Conference` must match the record's conference
+  number, `In-Reply-To` names the voted-on message, and `WhenWritten` must be
+  present and recent when the BBS enforces `max_qwkmsgage` (a missing date
+  reads as 1970 and gets age-filtered). The `[vote:<id>]` section name is the
+  ballot's own message-ID; Synchronet uses it for duplicate detection, so we
+  generate a unique one per ballot.
