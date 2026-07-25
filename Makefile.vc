@@ -1,5 +1,5 @@
 #--------------------------------------------------
-# MultiMail Makefile (top) for Microsoft Visual C++
+# NoCarrierMail Makefile (top) for Microsoft Visual C++
 #--------------------------------------------------
 
 CURS_DIR = \pdcurses
@@ -26,11 +26,11 @@ IOBJS = mmcolor.$(O) mysystem.$(O) isoconv.$(O) basic.$(O) interfac.$(O) \
 packet.$(O) arealist.$(O) letterl.$(O) letterw.$(O) lettpost.$(O) \
 ansiview.$(O) addrbook.$(O) tagline.$(O) help.$(O) main.$(O)
 
-mm:	$(MOBJS) $(IOBJS)
-	link -out:mm.exe *.obj $(LIBS)
+ncmail:	$(MOBJS) $(IOBJS)
+	link -out:ncmail.exe *.obj $(LIBS)
 
 clean:
 	del *.obj
-	del mm.exe
+	del ncmail.exe
 
 !include depend

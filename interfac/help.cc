@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * help windows
 
  Copyright 1996-1997 Kolossvary Tamas <thomas@vma.bme.hu>

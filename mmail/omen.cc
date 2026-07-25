@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * OMEN
 
  Copyright 1999-2021 William McBrine <wmcbrine@gmail.com>
@@ -386,7 +386,7 @@ omenrep::~omenrep()
 {
 }
 
-// convert one reply to MultiMail's internal format
+// convert one reply to NoCarrierMail's internal format
 bool omenrep::getRep1(FILE *rep, upl_omen *l, int recnum)
 {
     FILE *orgfile, *destfile;

@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * main_read_class, reply_read_class
 
  Copyright 1996-1997 Toth Istvan <stoty@vma.bme.hu>

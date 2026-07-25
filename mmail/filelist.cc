@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * file_header and file_list
 
  Copyright 1996-1997 Toth Istvan <stoty@vma.bme.hu>

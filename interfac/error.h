@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * error-reporting class
 
  Copyright 1998-2018 William McBrine <wmcbrine@gmail.com>

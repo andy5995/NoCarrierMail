@@ -1,15 +1,15 @@
-MultiMail compilation and installation procedure
+NoCarrierMail compilation and installation procedure
 ================================================
 
-These instructions assume that you're compiling MultiMail from source. For
+These instructions assume that you're compiling NoCarrierMail from source. For
 precompiled binaries, see the README files that accompany them instead.
 
-On Unix, Linux, macOS, and Windows (via MSYS2 or MSVC), MultiMail builds with
+On Unix, Linux, macOS, and Windows (via MSYS2 or MSVC), NoCarrierMail builds with
 the Meson build system. For the 16-bit MS-DOS and OS/2 ports, see "Other
 compilers and platforms" near the end of this file.
 
 1. Make sure the needed packages are installed --
-    To build MultiMail you'll need a C++ compiler, Meson and Ninja, and a
+    To build NoCarrierMail you'll need a C++ compiler, Meson and Ninja, and a
     curses library -- either ncurses, SysV curses (e.g., Solaris curses), or
     PDCurses. You can get these from:
 
@@ -17,7 +17,7 @@ compilers and platforms" near the end of this file.
         ncurses:  <https://invisible-island.net/ncurses/>
         PDCurses: <https://pdcurses.org/>
 
-    If using PDCurses, MultiMail requires version 3.6 or later. (On Linux, you
+    If using PDCurses, NoCarrierMail requires version 3.6 or later. (On Linux, you
     most likely already have ncurses, Meson, and Ninja in your package manager.)
 
     At run time, you'll also need InfoZip or PKZIP (and/or LHA, ARJ, etc.) to
@@ -27,7 +27,7 @@ compilers and platforms" near the end of this file.
 
     (PKZIP is the default for DOS; InfoZip is the default for other platforms.)
     These programs should be in the PATH; otherwise, the full path must be
-    specified in ~/.mmailrc.
+    specified in ~/.ncmailrc.
 
 2. Configure and build --
     From the top of the source tree:
@@ -36,7 +36,7 @@ compilers and platforms" near the end of this file.
         meson compile -C builddir
 
     Meson finds curses automatically (via pkg-config, with a fallback search).
-    The resulting binary is builddir/mm .
+    The resulting binary is builddir/ncmail .
 
     Build options (pass to "meson setup", or change later with
     "meson configure builddir"):
@@ -48,8 +48,8 @@ compilers and platforms" near the end of this file.
         --buildtype=release   Optimized build (the default is a debug build)
 
 3. Run it --
-    Type: `./builddir/mm`
-    (For Windows, set the MMAIL or HOME variable first, then run mm.)
+    Type: `./builddir/ncmail`
+    (For Windows, set the NCMAIL or HOME variable first, then run ncmail.)
 
 4. (Optional:) Run the tests --
     Type: `meson test -C builddir`
@@ -61,16 +61,16 @@ compilers and platforms" near the end of this file.
     "meson setup builddir --prefix ~/.local".
 
 6. (Optional:) Configure it (for the end user) --
-    Edit the ~/.mmailrc file. (For Windows, mmail.rc.)
+    Edit the ~/.ncmailrc file. (For Windows, ncmail.rc.)
 
 This package includes some example color schemes, in the "colors" directory.
-To select one, use the "ColorFile" keyword in .mmailrc .
+To select one, use the "ColorFile" keyword in .ncmailrc .
 
 
 Support for XCurses (PDCurses)
 ------------------------------
 
-When MultiMail is compiled with XCurses, you can use the X resource database
+When NoCarrierMail is compiled with XCurses, you can use the X resource database
 to set certain startup options. Here are some example resources:
 
     XCurses*normalFont: 9x15
@@ -80,8 +80,8 @@ to set certain startup options. Here are some example resources:
 
 For details, see the PDCurses documentation.
 
-If you're using a non-X text editor with an XCurses version of MultiMail, it
-will work better if you set MultiMail's editor variable to "xterm -e $EDITOR"
+If you're using a non-X text editor with an XCurses version of NoCarrierMail, it
+will work better if you set NoCarrierMail's editor variable to "xterm -e $EDITOR"
 instead of just "$EDITOR" (the default).
 
 

@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * Interface, ShadowedWin, ListWindow
 
  Copyright 1996 Kolossvary Tamas <thomas@tvnet.hu>

@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * most class definitions for the interface
 
  Copyright 1996 Kolossvary Tamas <thomas@tvnet.hu>

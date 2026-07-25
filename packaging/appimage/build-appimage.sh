@@ -84,10 +84,10 @@ export LINUXDEPLOY_OUTPUT_VERSION="$VERSION"
 linuxdeploy \
   --appdir="$APPDIR" \
   --custom-apprun=$SOURCE_ROOT/packaging/appimage/AppRun \
-  -d $SOURCE_ROOT/packaging/appimage/multimail.desktop \
-  --icon-file=$SOURCE_ROOT/packaging/multimail.png \
-  --icon-filename=multimail \
-  --executable=$APPDIR/usr/bin/mm
+  -d $SOURCE_ROOT/packaging/appimage/ncmail.desktop \
+  --icon-file=$SOURCE_ROOT/packaging/ncmail.png \
+  --icon-filename=ncmail \
+  --executable=$APPDIR/usr/bin/ncmail
 
 if [ "$VERSION" = "snapshot" ]; then
   TAG="snapshot"
@@ -101,7 +101,7 @@ ARCH=$(uname -m)
 GH_OWNER=${GITHUB_REPOSITORY%%/*}
 GH_REPO=${GITHUB_REPOSITORY##*/}
 : "${GH_OWNER:=andy5995}"
-: "${GH_REPO:=MultiMail}"
+: "${GH_REPO:=NoCarrierMail}"
 OUT_APPIMAGE="$GH_REPO-$VERSION-$ARCH.AppImage"
 UPINFO="gh-releases-zsync|$GH_OWNER|$GH_REPO|$TAG|*$ARCH.AppImage.zsync"
 

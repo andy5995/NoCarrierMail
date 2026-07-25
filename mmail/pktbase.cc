@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * Packet base class -- common methods
 
  Copyright 1999-2021 William McBrine <wmcbrine@gmail.com>
@@ -458,7 +458,7 @@ const char *pktbase::getTear(int)
 {
     static char tear[80];
 
-    sprintf(tear, "--- " MM_NAME "/%.58s v" MM_VERNUM, sysname());
+    sprintf(tear, "--- " MM_NAME "/%.54s v" MM_VERNUM, sysname());
 
     return tear;
 }

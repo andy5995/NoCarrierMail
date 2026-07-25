@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * message list
 
  Copyright 1996 Kolossvary Tamas <thomas@tvnet.hu>

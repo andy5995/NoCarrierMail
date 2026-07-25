@@ -53,9 +53,9 @@ jobs:
       shell: msys2 {0}
       run: |
         mkdir -p _staging
-        cp _build/mm.exe _staging/
+        cp _build/ncmail.exe _staging/
         cp -r colors _staging/
-        bash packaging/windows/collect-dlls.sh _staging/mm.exe _staging/
+        bash packaging/windows/collect-dlls.sh _staging/ncmail.exe _staging/
 
     - name: Set version
       shell: bash
@@ -74,13 +74,13 @@ jobs:
     - name: Build installer
       shell: pwsh
       run: |
-        iscc /DVERSION=$env:VERSION /DARCH=$env:ARCH packaging\windows\multimail.iss
+        iscc /DVERSION=$env:VERSION /DARCH=$env:ARCH packaging\windows\ncmail.iss
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     - name: Checksum
       shell: pwsh
       run: |
-        $file = "MultiMail-$env:VERSION-windows-$env:ARCH-setup.exe"
+        $file = "NoCarrierMail-$env:VERSION-windows-$env:ARCH-setup.exe"
         $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
         "$hash  $file" | Out-File -Encoding ascii "$file.sha256sum"
 
@@ -88,16 +88,16 @@ jobs:
       if: github.ref != 'refs/heads/master'
       uses: actions/upload-artifact@v7
       with:
-        name: MultiMail-windows-installer
-        path: MultiMail-${{ env.VERSION }}-windows-${{ env.ARCH }}-setup.exe*
+        name: NoCarrierMail-windows-installer
+        path: NoCarrierMail-${{ env.VERSION }}-windows-${{ env.ARCH }}-setup.exe*
         if-no-files-found: error
 
     - name: Prerelease (master)
       if: github.ref == 'refs/heads/master'
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "MultiMail-${{ env.VERSION }}-windows-${{ env.ARCH }}-setup.exe*"
-        body: "MultiMail Snapshot Release"
+        artifacts: "NoCarrierMail-${{ env.VERSION }}-windows-${{ env.ARCH }}-setup.exe*"
+        body: "NoCarrierMail Snapshot Release"
         allowUpdates: true
         prerelease: true
         removeArtifacts: false
@@ -111,7 +111,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/') || inputs.version != ''
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "MultiMail-${{ env.VERSION }}-windows-${{ env.ARCH }}-setup.exe*"
+        artifacts: "NoCarrierMail-${{ env.VERSION }}-windows-${{ env.ARCH }}-setup.exe*"
         tag: ${{ inputs.version != '' && format('v{0}', env.VERSION) || '' }}
         allowUpdates: true
         prerelease: false

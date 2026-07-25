@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * message display
 
  Copyright 1996 Kolossvary Tamas <thomas@tvnet.hu>
@@ -916,7 +916,7 @@ void LetterWindow::ViewExternal()
     const char *cmd = mm.res.get(viewer);
 
     if (!cmd || !*cmd) {
-        ui.nonFatalError("No viewer set (add a \"Viewer\" line to .mmailrc)");
+        ui.nonFatalError("No viewer set (add a \"Viewer\" line to .ncmailrc)");
         return;
     }
 
@@ -934,7 +934,7 @@ void LetterWindow::ViewExternal()
         // GUI viewer otherwise leaves the terminal at a bare prompt, looking
         // hung, until its window is closed.
         endwin();
-        fputs("MultiMail: waiting for the external viewer to close...\n",
+        fputs("NoCarrierMail: waiting for the external viewer to close...\n",
               stdout);
         fflush(stdout);
 

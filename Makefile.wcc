@@ -1,5 +1,5 @@
 #-----------------------------------------------
-# MultiMail Makefile (top) for Open Watcom C++
+# NoCarrierMail Makefile (top) for Open Watcom C++
 #-----------------------------------------------
 
 # For Windows:
@@ -60,11 +60,11 @@ IOBJS = mmcolor.$(O) mysystem.$(O) isoconv.$(O) basic.$(O) interfac.$(O) &
 packet.$(O) arealist.$(O) letterl.$(O) letterw.$(O) lettpost.$(O) &
 ansiview.$(O) addrbook.$(O) tagline.$(O) help.$(O) main.$(O)
 
-all:	mm.exe
+all:	ncmail.exe
 
-mm.exe:	$(MOBJS) $(IOBJS)
-	$(LINKER) name mm.exe file { $(MOBJS) $(IOBJS) } libfile $(LIBS)
+ncmail.exe:	$(MOBJS) $(IOBJS)
+	$(LINKER) name ncmail.exe file { $(MOBJS) $(IOBJS) } libfile $(LIBS)
 
 clean
 	del *.obj
-	del mm.exe
+	del ncmail.exe

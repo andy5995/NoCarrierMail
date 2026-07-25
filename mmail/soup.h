@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * SOUP
 
  Copyright 1999-2021 William McBrine <wmcbrine@gmail.com>

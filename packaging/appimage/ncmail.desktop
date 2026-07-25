@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=MultiMail
+Name=NoCarrierMail
 GenericName=Offline Mail Reader
 Comment=Offline mail packet reader for Blue Wave, QWK, OMEN, SOUP, and OPX
-Exec=mm
-Icon=multimail
+Exec=ncmail
+Icon=ncmail
 Terminal=true
 Categories=Network;Email;
 Keywords=offline;mail;qwk;bluewave;bbs;soup;

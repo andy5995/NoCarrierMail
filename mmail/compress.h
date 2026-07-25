@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * compress and decompress packets
 
  Copyright 1997 John Zero <john@graphisoft.hu>

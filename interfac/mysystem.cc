@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * some low-level routines common to both sides
 
  Copyright 1997-2021 William McBrine <wmcbrine@gmail.com>

@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * SOUP
 
  Copyright 1999-2021 William McBrine <wmcbrine@gmail.com>
@@ -722,7 +722,7 @@ souprep::~souprep()
 {
 }
 
-// convert one reply to MultiMail's internal format
+// convert one reply to NoCarrierMail's internal format
 bool souprep::getRep1(FILE *rep, upl_soup *l)
 {
     FILE *orgfile, *destfile;

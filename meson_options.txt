@@ -29,6 +29,6 @@ option(
 option(
     'docdir',
     type: 'string',
-    value: 'share/doc/multimail',
+    value: 'share/doc/nocarriermail',
     description: 'Directory for documentation and example color schemes',
 )

@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * color handling, and default colors
 
  Copyright 1998-2021 William McBrine <wmcbrine@gmail.com>,

@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * OMEN
 
  Copyright 1999-2021 William McBrine <wmcbrine@gmail.com>

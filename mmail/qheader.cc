@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * QWK message-header struct (qheader)
 
  Copyright 1997 John Zero <john@graphisoft.hu>

@@ -60,13 +60,13 @@ jobs:
       working-directory: PDCurses/dos
       run: wmake -f Makefile.wcc MODEL=l RM=rm pdcurses.lib
 
-    - name: Build mm.exe
+    - name: Build ncmail.exe
       run: wmake -f Makefile.wcc SYS=DOS16 CURS_DIR=$PWD/PDCurses
 
     - name: Verify DOS executable
       run: |
-        file mm.exe
-        case "$(file -b mm.exe)" in
+        file ncmail.exe
+        case "$(file -b ncmail.exe)" in
           MS-DOS*) echo "OK: 16-bit DOS executable" ;;
           *) echo "ERROR: not a DOS executable"; exit 1 ;;
         esac
@@ -82,8 +82,8 @@ jobs:
           fi
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
         fi
-        OUT="MultiMail-${VERSION}-dos.exe"
-        cp mm.exe "$OUT"
+        OUT="NoCarrierMail-${VERSION}-dos.exe"
+        cp ncmail.exe "$OUT"
         sha256sum "$OUT" > "$OUT.sha256sum"
         echo "OUT=${OUT}" >> "$GITHUB_ENV"
 
@@ -91,7 +91,7 @@ jobs:
       if: github.ref != 'refs/heads/master'
       uses: actions/upload-artifact@v7
       with:
-        name: MultiMail-dos
+        name: NoCarrierMail-dos
         path: ${{ env.OUT }}*
         if-no-files-found: error
 
@@ -100,7 +100,7 @@ jobs:
       uses: ncipollo/release-action@v1
       with:
         artifacts: "${{ env.OUT }}*"
-        body: "MultiMail Snapshot Release"
+        body: "NoCarrierMail Snapshot Release"
         allowUpdates: true
         prerelease: true
         removeArtifacts: false

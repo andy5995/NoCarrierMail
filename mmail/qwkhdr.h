@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * QWK HEADERS.DAT parser (Synchronet extended headers)
 
  Distributed under the GNU General Public License, version 3 or later. */

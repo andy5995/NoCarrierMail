@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * address book
 
  Copyright 1996 Kolossvary Tamas <thomas@vma.bme.hu>

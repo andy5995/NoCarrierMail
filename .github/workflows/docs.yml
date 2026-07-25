@@ -5,7 +5,7 @@ on:
     branches: [ master ]
     paths: &shared_paths
       - 'MANUAL.md'
-      - 'mm.1'
+      - 'ncmail.1'
       - '.github/workflows/docs.yml'
   pull_request:
     branches: [ master ]
@@ -13,7 +13,7 @@ on:
 
 jobs:
   manpage:
-    name: mm.1 in sync with MANUAL.md
+    name: ncmail.1 in sync with MANUAL.md
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v7
@@ -22,16 +22,16 @@ jobs:
       with:
         go-version: stable
 
-    # Pin go-md2man so the check matches the version that generated mm.1;
+    # Pin go-md2man so the check matches the version that generated ncmail.1;
     # a distro-packaged version could format differently and false-fail.
     - name: Install go-md2man
       run: go install github.com/cpuguy83/go-md2man/v2@v2.0.7
 
-    - name: Regenerate mm.1 and compare
+    - name: Regenerate ncmail.1 and compare
       run: |
-        "$(go env GOPATH)/bin/go-md2man" -in MANUAL.md -out mm.1.regen
-        if ! diff -u mm.1 mm.1.regen; then
-          echo "::error file=mm.1::mm.1 is out of sync with MANUAL.md."
-          echo "Regenerate with: go-md2man -in MANUAL.md -out mm.1"
+        "$(go env GOPATH)/bin/go-md2man" -in MANUAL.md -out ncmail.1.regen
+        if ! diff -u ncmail.1 ncmail.1.regen; then
+          echo "::error file=ncmail.1::ncmail.1 is out of sync with MANUAL.md."
+          echo "Regenerate with: go-md2man -in MANUAL.md -out ncmail.1"
           exit 1
         fi

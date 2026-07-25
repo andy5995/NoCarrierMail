@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * protos for mysystem.cc
 
  Copyright 1997-2017 William McBrine <wmcbrine@gmail.com>

@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * resource class
 
  Copyright 1996-1997 Toth Istvan <stoty@vma.bme.hu>
@@ -48,10 +48,10 @@
 #define DEFUNNONE "xxuncompress"
 
 #ifdef DOSNAMES
-# define RCNAME "mmail.rc"
+# define RCNAME "ncmail.rc"
 # define ADDRBOOK "address.bk"
 #else
-# define RCNAME ".mmailrc"
+# define RCNAME ".ncmailrc"
 # define ADDRBOOK "addressbook"
 #endif
 
@@ -208,7 +208,7 @@ const char *resource::rc_comments[startUpLen] = {
  "Your Internet email address (used only in SOUP replies)",
  "Quote header for replies (non-Internet)",
  "Quote header for Internet email and Usenet replies",
- "Base directories (derived from $HOME or $MMAIL)", 0,
+ "Base directories (derived from $HOME or $NCMAIL)", 0,
  "Signature (file) that should be appended to each message. (Not used\n"
  "# unless specified here.)",
  "Editor for replies = $EDITOR; or if not defined, " DEFEDIT,
@@ -248,7 +248,7 @@ const char *resource::rc_comments[startUpLen] = {
  "For QWK only: Generate indexes from MESSAGES.DAT instead of *.NDX",
  "Allow use of the mouse?"
 #ifdef USE_SPAWNO
- , "Attempt to swap MultiMail out of conventional memory when shelling"
+ , "Attempt to swap NoCarrierMail out of conventional memory when shelling"
 #endif
 };
 
@@ -535,7 +535,7 @@ void resource::homeInit()
 {
     bool usingHOME = false;
 
-    const char *envhome = getenv("MMAIL");
+    const char *envhome = getenv("NCMAIL");
     if (!envhome) {
         envhome = getenv("HOME");
         if (envhome)
@@ -548,7 +548,7 @@ void resource::homeInit()
 
     if (usingHOME)
         set_noalloc(mmHomeDir, canonize(fullpath(resourceData[homeDir],
-                    "mmail")));
+                    "ncmail")));
     else
         set(mmHomeDir, resourceData[homeDir]);
 }

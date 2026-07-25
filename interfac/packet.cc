@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * packet list window, vanity plate
 
  Copyright 1996 Kolossvary Tamas <thomas@vma.bme.hu>

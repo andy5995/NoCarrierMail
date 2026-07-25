@@ -1,5 +1,5 @@
 project(
-    'multimail',
+    'nocarriermail',
     'cpp',
     version: '0.53',
     license: 'GPL-3.0-or-later',
@@ -86,7 +86,7 @@ if is_msvc
     endforeach
 endif
 
-mmail_src = files(
+ncmail_src = files(
     'mmail/area.cc',
     'mmail/bw.cc',
     'mmail/compress.cc',
@@ -125,28 +125,28 @@ interfac_src = files(
 )
 
 executable(
-    'mm',
-    mmail_src + interfac_src,
+    'ncmail',
+    ncmail_src + interfac_src,
     include_directories: include_directories('.'),
     dependencies: deps,
     override_options: cpp98,
     install: true,
 )
 
-# mm.1 is committed and current; regenerate from MANUAL.md only when the
+# ncmail.1 is committed and current; regenerate from MANUAL.md only when the
 # (optional) go-md2man tool is present.
 md2man = find_program('go-md2man', required: false)
 if md2man.found()
     custom_target(
-        'mm.1',
+        'ncmail.1',
         input: 'MANUAL.md',
-        output: 'mm.1',
+        output: 'ncmail.1',
         command: [md2man, '-in', '@INPUT@', '-out', '@OUTPUT@'],
         install: true,
         install_dir: join_paths(get_option('mandir'), 'man1'),
     )
 else
-    install_man('mm.1')
+    install_man('ncmail.1')
 endif
 
 # Docs and the example color schemes (selectable via the ColorFile rc keyword).

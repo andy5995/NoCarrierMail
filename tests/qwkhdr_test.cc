@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * Unit tests for mmail/qwkhdr.cc (Synchronet HEADERS.DAT parser)
 
  Distributed under the GNU General Public License, version 3 or later. */

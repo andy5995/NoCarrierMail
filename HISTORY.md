@@ -4,6 +4,11 @@ Revision History
 (in-progress)
 -------------
 
+- Renamed the project from MultiMail to NoCarrierMail. The binary is now
+  `ncmail`, the config file is `~/.ncmailrc` (`ncmail.rc` on DOS/Windows), and
+  the default data directory is `~/ncmail`. Copy `~/.mmailrc` to `~/.ncmailrc`
+  to keep your old settings.
+
 - Fix a crash when reopening a Blue Wave packet whose reply had subscription
   changes: reading the saved area-change list walked off the start of the line
   buffer on the blank lines between area entries.

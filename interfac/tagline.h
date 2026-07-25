@@ -7,7 +7,7 @@ for new users. You can replace this list with whatever taglines you like
 #define TAGLINES_H
 
 static const char *defaultTags[] = {
- "MultiMail, the new multi-platform, multi-format offline reader!",
+ "NoCarrierMail, the new multi-platform, multi-format offline reader!",
  "\"42? 7 and a half million years and all you can come up with is 42?!\"",
  "2 + 2 = 5 for extremely large values of 2.",
  "Computer Hacker wanted. Must have own axe.",

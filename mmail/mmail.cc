@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * mmail class
 
  Copyright 1996 Toth Istvan <stoty@vma.bme.hu>

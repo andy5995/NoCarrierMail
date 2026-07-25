@@ -1,5 +1,5 @@
 #-----------------------------------------------
-# MultiMail Makefile (top) for Borland/Turbo C++
+# NoCarrierMail Makefile (top) for Borland/Turbo C++
 #-----------------------------------------------
 
 !ifndef CURS_DIR
@@ -38,12 +38,12 @@ IOBJS = mmcolor.$(O) mysystem.$(O) isoconv.$(O) basic.$(O) interfac.$(O) \
 packet.$(O) arealist.$(O) letterl.$(O) letterw.$(O) lettpost.$(O) \
 ansiview.$(O) addrbook.$(O) tagline.$(O) help.$(O) main.$(O)
 
-all:	mm
+all:	ncmail
 
-mm:	$(MOBJS) $(IOBJS)
-	$(CC) -emm @$(LIST) $(LIBS)
+ncmail:	$(MOBJS) $(IOBJS)
+	$(CC) -encmail @$(LIST) $(LIBS)
 
 clean:
 	del *.obj
-	del mm.exe
-        del mm.tds
+	del ncmail.exe
+        del ncmail.tds

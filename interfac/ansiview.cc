@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * ANSI image/text viewer
 
  Copyright 1998-2021 William McBrine <wmcbrine@gmail.com>

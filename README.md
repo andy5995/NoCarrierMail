@@ -1,23 +1,23 @@
-# MultiMail
+# NoCarrierMail
 
-[![Linux](https://github.com/andy5995/MultiMail/actions/workflows/linux.yml/badge.svg)](https://github.com/andy5995/MultiMail/actions/workflows/linux.yml)
-[![macOS](https://github.com/andy5995/MultiMail/actions/workflows/macos.yml/badge.svg)](https://github.com/andy5995/MultiMail/actions/workflows/macos.yml)
-[![BSD](https://github.com/andy5995/MultiMail/actions/workflows/bsd.yml/badge.svg)](https://github.com/andy5995/MultiMail/actions/workflows/bsd.yml)
-[![MSVC](https://github.com/andy5995/MultiMail/actions/workflows/msvc.yml/badge.svg)](https://github.com/andy5995/MultiMail/actions/workflows/msvc.yml)
-[![MSYS2](https://github.com/andy5995/MultiMail/actions/workflows/msys2.yml/badge.svg)](https://github.com/andy5995/MultiMail/actions/workflows/msys2.yml)
-[![DOS](https://github.com/andy5995/MultiMail/actions/workflows/dos.yml/badge.svg)](https://github.com/andy5995/MultiMail/actions/workflows/dos.yml)
+[![Linux](https://github.com/andy5995/NoCarrierMail/actions/workflows/linux.yml/badge.svg)](https://github.com/andy5995/NoCarrierMail/actions/workflows/linux.yml)
+[![macOS](https://github.com/andy5995/NoCarrierMail/actions/workflows/macos.yml/badge.svg)](https://github.com/andy5995/NoCarrierMail/actions/workflows/macos.yml)
+[![BSD](https://github.com/andy5995/NoCarrierMail/actions/workflows/bsd.yml/badge.svg)](https://github.com/andy5995/NoCarrierMail/actions/workflows/bsd.yml)
+[![MSVC](https://github.com/andy5995/NoCarrierMail/actions/workflows/msvc.yml/badge.svg)](https://github.com/andy5995/NoCarrierMail/actions/workflows/msvc.yml)
+[![MSYS2](https://github.com/andy5995/NoCarrierMail/actions/workflows/msys2.yml/badge.svg)](https://github.com/andy5995/NoCarrierMail/actions/workflows/msys2.yml)
+[![DOS](https://github.com/andy5995/NoCarrierMail/actions/workflows/dos.yml/badge.svg)](https://github.com/andy5995/NoCarrierMail/actions/workflows/dos.yml)
 
-MultiMail is an offline mail packet reader with a curses-based interface,
+NoCarrierMail is an offline mail packet reader with a curses-based interface,
 for Unix / Linux, macOS, Windows, and other systems. It reads and replies
 to messages in the Blue Wave, QWK, OMEN, SOUP, and OPX formats.
 
-> This is a fork of MultiMail by [@andy5995][maintainer]. The original was
-> written by Kolossvary Tamas and Toth Istvan and maintained for many years
-> by [William McBrine][wmcbrine]; see [Credits](#credits). This fork adds a
-> Meson build, a unit-test suite, and a number of fixes and features on top
-> of the 0.52 base.
+> NoCarrierMail is a fork of MultiMail, maintained by [andy5995][maintainer].
+> MultiMail was written by Kolossvary Tamas and Toth Istvan and maintained for
+> many years by [William McBrine][wmcbrine]; see [Credits](#credits). This fork
+> adds a Meson build, a unit-test suite, and a number of fixes and features on
+> top of the 0.52 base.
 
-MultiMail is free software, distributed under the [GNU General Public
+NoCarrierMail is free software, distributed under the [GNU General Public
 License][gpl], version 3 or later.
 
 
@@ -53,7 +53,7 @@ SysV curses, or PDCurses 3.6+). From the top of the source tree:
     meson setup builddir
     meson compile -C builddir
 
-The binary is `builddir/mm`. To run the tests:
+The binary is `builddir/ncmail`. To run the tests:
 
     meson test -C builddir
 
@@ -68,9 +68,13 @@ InfoZip to unpack packets and pack replies.
 
 ## Usage
 
-See the [man page][MANUAL] for usage, and edit `~/.mmailrc` (or `mmail.rc`
+See the [man page][MANUAL] for usage, and edit `~/.ncmailrc` (or `ncmail.rc`
 on Windows) to configure the reader. Example color schemes are in the
 `colors` directory; select one with the `ColorFile` keyword.
+
+If you used MultiMail before, you can keep your old settings. Copy your
+`~/.mmailrc` file to `~/.ncmailrc` (on Windows, copy `mmail.rc` to
+`ncmail.rc`). New users do not need to do this.
 
 
 ## Contributing
@@ -100,7 +104,7 @@ Earlier bug reports and suggestions are noted in the [HISTORY.md] file.
 [MANUAL]: MANUAL.md
 
 [maintainer]: https://github.com/andy5995
-[github]: https://github.com/andy5995/MultiMail
-[issues]: https://github.com/andy5995/MultiMail/issues
-[releases]: https://github.com/andy5995/MultiMail/releases/latest
+[github]: https://github.com/andy5995/NoCarrierMail
+[issues]: https://github.com/andy5995/NoCarrierMail/issues
+[releases]: https://github.com/andy5995/NoCarrierMail/releases/latest
 [wmcbrine]: https://wmcbrine.com/MultiMail/

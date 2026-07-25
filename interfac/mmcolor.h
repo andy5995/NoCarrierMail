@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * color pairs #define'd here
 
  Copyright 1996-1997 John Zero <john@graphisoft.hu>

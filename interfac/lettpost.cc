@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * message editing (continuation of the LetterWindow class)
 
  Copyright 1996 Kolossvary Tamas <thomas@tvnet.hu>

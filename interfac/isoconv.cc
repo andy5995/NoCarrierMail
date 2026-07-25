@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * conversion tables ISO 8859-1 <-> IBM codepage 437
 
  Copyright 1997 Peter Krefting <peter@softwolves.pp.se>,

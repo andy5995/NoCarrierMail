@@ -63,7 +63,7 @@ jobs:
           sha256sum "$file" > "$file.sha256sum";
 
       - name: Artifact Filename
-        run: echo "ARTIFACT_NAME=MultiMail-appImage-${ARCH//\//-}" >> $GITHUB_ENV
+        run: echo "ARTIFACT_NAME=NoCarrierMail-appImage-${ARCH//\//-}" >> $GITHUB_ENV
 
       - if: ${{ github.ref != 'refs/heads/master' }}
         name: Upload AppImage
@@ -89,7 +89,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "./out/*AppImage*"
-          body: "MultiMail Snapshot Release"
+          body: "NoCarrierMail Snapshot Release"
           allowUpdates: true
           prerelease: true
           removeArtifacts: false

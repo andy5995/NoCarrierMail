@@ -1,5 +1,5 @@
 /*
- * MultiMail offline mail reader
+ * NoCarrierMail offline mail reader
  * Minimal unit-test harness
 
  Distributed under the GNU General Public License, version 3 or later. */

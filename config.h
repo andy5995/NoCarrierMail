@@ -5,8 +5,8 @@
 #define MM_MINOR 53
 #define MM_YEAR "2026"
 
-#define MM_NAME "MultiMail"
-#define MM_SNAME "MMail"
+#define MM_NAME "NoCarrierMail"
+#define MM_SNAME "NCMail"
 #define MM_VERNUM STR(MM_MAJOR) "." STR(MM_MINOR)
 #define MM_TOPHEADER MM_NAME "/%.16s v" MM_VERNUM
 

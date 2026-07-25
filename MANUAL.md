@@ -1,23 +1,23 @@
-MultiMail 1 "June 11, 2026"
+NoCarrierMail 1 "June 11, 2026"
 ===========================
 
 
 NAME
 ----
 
-mm - offline mail reader for Blue Wave, QWK, OMEN, SOUP and OPX packets
+ncmail - offline mail reader for Blue Wave, QWK, OMEN, SOUP and OPX packets
 
 
 SYNOPSIS
 --------
 
-`mm` [`-option1 value`] [`-option2 value`] [...] [*file1*] [*file2*] [...]
+`ncmail` [`-option1 value`] [`-option2 value`] [...] [*file1*] [*file2*] [...]
 
 
 DESCRIPTION
 -----------
 
-MultiMail is an offline mail packet reader, supporting the Blue Wave,
+NoCarrierMail is an offline mail packet reader, supporting the Blue Wave,
 QWK, OMEN, SOUP and OPX formats. It uses a simple curses-based
 interface.
 
@@ -65,7 +65,7 @@ Of special note is the space bar. In most screens, it functions as an
 alias for PgDn; but in the letter window, it works as a combination
 PgDn/Enter key, allowing you to page through an area with one key.
 
-In the area list, the default view (selectable in the .mmailrc) is of
+In the area list, the default view (selectable in the .ncmailrc) is of
 Subscribed areas only, or of Active areas (i.e., those with messages) if
 the Subscribed areas are unknown. By pressing L, you can toggle between
 Active, All, and Subscribed views. (Some formats, like plain QWK, don't
@@ -78,13 +78,13 @@ In the letter list, only unread messages are displayed, by default; but
 you can toggle this by pressing L. If there are any marked messages, L
 first switches to a marked-only mode, then to all messages, then back to
 unread-only. Also, the default mode -- unread or all -- can be set in
-the .mmailrc.
+the .ncmailrc.
 
 Multiple sort modes are available in the packet and letter lists; you
 can cycle through them by pressing '$'. The default sort modes are set
-in the .mmailrc.
+in the .ncmailrc.
 
-Options can be specified on the command line as well as in the .mmailrc.
+Options can be specified on the command line as well as in the .ncmailrc.
 Option names are the same as those which appear there, though they must
 be prefaced by one or two dashes, and should not be followed by a colon.
 There must be a space between the option name and the value; values
@@ -108,17 +108,17 @@ way to terminate the sequence prematurely.
 
 You can obtain a temporary command shell anywhere by pressing CTRL-Z. In
 the DOSish ports (MS-DOS, OS/2, Windows), it spawns a command shell, and
-you return to MultiMail via the "exit" command. In Unix, it relies on
-the shell to put MultiMail in the background; you return with "fg".
+you return to NoCarrierMail via the "exit" command. In Unix, it relies on
+the shell to put NoCarrierMail in the background; you return with "fg".
 (This has always been available in the Unix versions; however, it won't
-work if MultiMail wasn't launched from an interactive shell, or if the
+work if NoCarrierMail wasn't launched from an interactive shell, or if the
 shell doesn't support it.)
 
 
 MOUSING
 -------
 
-MultiMail is mousable on many platforms: X, SDL, the Linux console (with
+NoCarrierMail is mousable on many platforms: X, SDL, the Linux console (with
 gpm), Windows, DOS and OS/2. (You can still use selection with X and
 gpm, too; to select or paste, hold down the shift key.)
 
@@ -286,35 +286,35 @@ CTRL-V and CTRL-B, respectively.
 CHARACTER SETS
 --------------
 
-MultiMail supports automatic translation between two character sets: the
+NoCarrierMail supports automatic translation between two character sets: the
 IBM PC set (Code Page 437), and Latin-1 (ISO 8859-1). Messages can be in
 either character set; the set is determined by the area attributes --
 Internet and Usenet areas default to Latin-1, while all others default
 to IBM -- and by a CHRS or CHARSET kludge, if one is present. OMEN
-packets indicate their character set in the INFOxy.BBS file. MultiMail
+packets indicate their character set in the INFOxy.BBS file. NoCarrierMail
 translates when displaying messages and creating replies.
 
-The Unix versions of MultiMail assume that the console uses Latin-1,
+The Unix versions of NoCarrierMail assume that the console uses Latin-1,
 while the DOSish versions (DOS, OS/2, and Windows) assume the IBM PC
-set. You can override this via the .mmailrc option "Charset", or on a
+set. You can override this via the .ncmailrc option "Charset", or on a
 temporary basis by pressing 'c'.
 
 You can also use a different character set by disabling the conversion
-in MultiMail, and letting your terminal handle it. For SOUP packets, and
+in NoCarrierMail, and letting your terminal handle it. For SOUP packets, and
 for Internet or Usenet areas in other packets, everything will be passed
-through unchanged if you set MultiMail to "Latin-1". For most other
-packet types, setting MultiMail to "CP437" will have the same effect.
+through unchanged if you set NoCarrierMail to "Latin-1". For most other
+packet types, setting NoCarrierMail to "CP437" will have the same effect.
 
 Beginning with version 0.33, a new character set variable is available:
-"outCharset". This is a string which MultiMail puts into the MIME
+"outCharset". This is a string which NoCarrierMail puts into the MIME
 identifier lines in SOUP replies if the text includes 8-bit characters.
 It's also used for the pseudo-QP headers which are generated under the
-same conditions; and when displaying such headers, MultiMail only
+same conditions; and when displaying such headers, NoCarrierMail only
 converts text back to 8-bit if the character set matches. The default is
 "iso-8859-1".
 
 By default, if a header line in a SOUP reply contains 8-bit characters,
-MultiMail now writes it out with RFC 2047 (pseudo-QP) encoding. You can
+NoCarrierMail now writes it out with RFC 2047 (pseudo-QP) encoding. You can
 disable this for mail and/or news replies via the "UseQPMailHead" and
 "UseQPNewsHead" options, though I don't recommend it. The bodies can
 also be encoded in quoted-printable; this is now on by default for mail,
@@ -330,7 +330,7 @@ text of the message.
 ADDRESS BOOK
 ------------
 
-The address book in MultiMail is intended primarily for use with
+The address book in NoCarrierMail is intended primarily for use with
 Fido-style Netmail or Internet email areas, in those packet types which
 support these. When entering a message (other than a reply) into such an
 area, the address book comes up automatically. It's also possible to use
@@ -357,11 +357,11 @@ REPLY SPLITTING
 
 Replies may be split, either automatically, or manually via CTRL-B in
 the reply area. For automatic splitting, the default maximum number of
-lines per part is set in the .mmailrc. The split occurs whenever the
+lines per part is set in the .ncmailrc. The split occurs whenever the
 reply packet is saved. This allows you to defer the split and still
 re-edit the whole reply as one. However, with autosave on, the split
 will occur immediately after entering a reply (because the save does,
-too). Setting MaxLines in the .mmailrc to 0 disables automatic
+too). Setting MaxLines in the .ncmailrc to 0 disables automatic
 splitting; manual splitting is still allowed. Attempts to split at less
 than 20 lines are assumed to be mistakes and are ignored.
 
@@ -369,13 +369,13 @@ than 20 lines are assumed to be mistakes and are ignored.
 ENVIRONMENT
 -----------
 
-MultiMail uses the HOME or MMAIL environment variable to find its
-configuration file, .mmailrc; and EDITOR for the default editor. MMAIL
+NoCarrierMail uses the HOME or NCMAIL environment variable to find its
+configuration file, .ncmailrc; and EDITOR for the default editor. NCMAIL
 takes precedence over HOME if it's defined. If neither is defined, the
 startup directory is used.
 
-The use of EDITOR can be overridden in .mmailrc; however, environment
-variables can't be used within .mmailrc.
+The use of EDITOR can be overridden in .ncmailrc; however, environment
+variables can't be used within .ncmailrc.
 
 You should also make sure that your time zone is set correctly. On many
 systems, that means setting the TZ environment variable. A typical value
@@ -386,16 +386,16 @@ coast of the U.S.A.).
 FILES
 -----
 
-The only hardwired file is the configuration file: `.mmailrc`
-(`mmail.rc` in DOS, OS/2 or Windows). It's used to specify the pathnames
-to MultiMail's other files, and the command lines for external programs
+The only hardwired file is the configuration file: `.ncmailrc`
+(`ncmail.rc` in DOS, OS/2 or Windows). It's used to specify the pathnames
+to NoCarrierMail's other files, and the command lines for external programs
 (the editor and the archivers).
 
-By default, the other files are placed in the MultiMail home directory
-($HOME/mmail or $MMAIL). Directories specified in the .mmailrc are
+By default, the other files are placed in the NoCarrierMail home directory
+($HOME/ncmail or $NCMAIL). Directories specified in the .ncmailrc are
 created automatically; the default Unix values are shown here:
 
-`~/mmail`
+`~/ncmail`
   To store the tagline file, netmail addressbook, etc.
 
 `taglines`
@@ -408,13 +408,13 @@ created automatically; the default Unix values are shown here:
 `colors`
   Specifies the colors to use. (See [COLORS.md].)
 
-`~/mmail/down`
+`~/ncmail/down`
   To store the packets as they came from the bbs.
 
-`~/mmail/up`
+`~/ncmail/up`
   To store the reply packets which you have to upload to the bbs.
 
-`~/mmail/save`
+`~/ncmail/save`
   The default directory for saving messages.
 
 
@@ -438,7 +438,7 @@ example.
 Here are the keywords and their functions:
 
 `Version`
-  Specifies the version of MultiMail which last updated the file. This
+  Specifies the version of NoCarrierMail which last updated the file. This
   is used to check whether the file should be updated and the "new
   version" prompt displayed. Note that old values are preserved when the
   file is updated; the update merely adds any keywords that are new.
@@ -479,10 +479,10 @@ Here are the keywords and their functions:
   around that by putting a newline first.
 
 `mmHomeDir`
-  MultiMail's home directory.
+  NoCarrierMail's home directory.
 
 `TempDir`
-  This is the directory where MultiMail puts its temporary files -- by
+  This is the directory where NoCarrierMail puts its temporary files -- by
   default, as of 0.45, the same as mmHomeDir. The files are actually
   created within a subdirectory of this directory; the subdirectory is
   named "workNNNN", where NNNN is a random number (checked against any
@@ -494,7 +494,7 @@ Here are the keywords and their functions:
   should give the full path, not just the name.
 
 `editor`
-  The editor MultiMail uses for replies, along with any command-line
+  The editor NoCarrierMail uses for replies, along with any command-line
   options. This may also be a good place to insert spell-checkers, etc.,
   by specifying a batch file here. Note that the default value is just
   the editor that's (almost) guaranteed to be available, for a given OS
@@ -528,7 +528,7 @@ Here are the keywords and their functions:
   Path and filename of the tagline file. This could be altered from a
   batch file to swap between different sets of taglines. (But note that
   this value is only read at startup.) You could also share taglines
-  with another program, but be careful with that; MultiMail truncates
+  with another program, but be careful with that; NoCarrierMail truncates
   the lines at 76 characters.
 
 `ColorFile`
@@ -595,7 +595,7 @@ Here are the keywords and their functions:
 
 `ClockMode`
   The display mode for the clock in the upper right corner of the letter
-  window: "Time" (of day), "Elapsed" (since MultiMail started running),
+  window: "Time" (of day), "Elapsed" (since NoCarrierMail started running),
   or "Off".
 
 `Charset`
@@ -631,7 +631,7 @@ Here are the keywords and their functions:
   Blue Wave mode.
 
 `BeepOnPers`
-  Yes/No. If yes, MultiMail beeps when you open a message addressed to
+  Yes/No. If yes, NoCarrierMail beeps when you open a message addressed to
   or from yourself in the letter window. (These are the same messages
   which are highlighted in the letter list.)
 
@@ -680,7 +680,7 @@ Here are the keywords and their functions:
   that depends only on MESSAGES.DAT. This method is slightly slower than
   the *.NDX-based indexing method (though the delay is dwarfed by packet
   decompression time), but the most common problem with QWK packets is
-  corrupt *.NDX files. MultiMail now recognizes some cases where the
+  corrupt *.NDX files. NoCarrierMail now recognizes some cases where the
   *.NDX files are corrupt and switches automatically, but it doesn't
   catch them all.
 
@@ -690,7 +690,7 @@ UPGRADING
 
 The basic upgrade procedure is to simply copy the new executable over
 the old one. No other files are needed. When you run a new version of
-MultiMail for the first time, it automatically updates your .mmailrc and
+NoCarrierMail for the first time, it automatically updates your .ncmailrc and
 ColorFile with any new keywords. (Old keywords, and the values you've
 set for them, are preserved. However, comments are lost.)
 
@@ -702,13 +702,13 @@ Unlike the other archive types, tar/gzip recompresses the entire packet
 when updating the .red flags, so it can be a bit slow. Also, the
 supplied command lines assume GNU tar, which has gzip built-in.
 Separated gunzip/tar and tar/gzip command lines are possible, but would
-require a (simple) external script. MultiMail only checks for the gzip
+require a (simple) external script. NoCarrierMail only checks for the gzip
 signature, and does not actually verify that the gzipped file is a tar
 file.
 
 OPX reply packets are always created with a .rep extension, which
 differs from the behavior of some other readers. If you switch from QWK
-packets to OPX packets on the same board, MultiMail will _not_ open an
+packets to OPX packets on the same board, NoCarrierMail will _not_ open an
 old QWK .rep in OPX mode, nor vice versa. (It will try, and will
 terminate with "Error opening reply packet".)
 
@@ -717,7 +717,7 @@ basename is the part of the original packet name before the first
 period. (Unlike other formats, there's no actual standard for this in
 SOUP, but this seems to be the most common form among the SOUP readers I
 surveyed.) Also, not that I expect anyone to try this, but currently
-MultiMail is only able to read reply packets generated by other SOUP
+NoCarrierMail is only able to read reply packets generated by other SOUP
 readers if the replies are in 'b' or 'B' mode, and are one to a file
 within the packet. Most readers meet the first criterion, but some of
 them batch all mail and news replies into a single file for each type.
@@ -729,7 +729,7 @@ between directories; however, the destination filename must still be
 specified along with the path.
 
 If you're using the XCurses (PDCurses) version, and your editor isn't an
-X app, it will work better if you set MultiMail's "editor" keyword to
+X app, it will work better if you set NoCarrierMail's "editor" keyword to
 "xterm -e filename" (instead of just "filename"). I decided not to do
 this automatically because someone might actually use it with an X
 editor.
@@ -756,7 +756,7 @@ netmail.
 AUTHORS
 -------
 
-MultiMail was originally developed under Linux by Kolossvary Tamas and
+NoCarrierMail was originally developed under Linux by Kolossvary Tamas and
 Toth Istvan. John Zero was the maintainer for versions 0.2 through 0.6;
 since version 0.7, the maintainer is [William McBrine].
 
