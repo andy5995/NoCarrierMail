@@ -1,7 +1,7 @@
 project(
     'nocarriermail',
     'cpp',
-    version: '0.53',
+    version: '0.54',
     license: 'GPL-3.0-or-later',
     meson_version: '>= 0.59.0',
     default_options: [
