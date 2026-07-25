@@ -31,6 +31,11 @@ meson setup builddir --buildtype=release -Dstrip=true   # stripped release
   macro like `DOSNAMES` **must `#include "../config.h"`**, or it silently compiles
   the wrong platform's expectations while the linked code does the right thing —
   exactly what broke the `misc` test on MSVC/MSYS2.
+- The unit tests cover no UI. To check a display change, **drive the curses UI in
+  a tmux pane and scrape it** — see `docs/driving-the-ui-headlessly.md` for the
+  harness, the keystroke flow for entering a reply, and the two traps that bite
+  scripted runs (a stand-in editor must change the reply file's mtime by a whole
+  second; an empty command-line value can't clear a string setting).
 - CI (`.github/workflows/`) builds on Linux, macOS, MSYS2 (ncurses), MSVC
   (PDCurses via vcpkg), and **16-bit DOS** (`dos.yml`, OpenWatcom). Beyond
   `meson test`, the cross-platform bar is still "compiles clean everywhere."
