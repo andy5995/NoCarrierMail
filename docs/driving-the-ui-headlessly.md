@@ -26,6 +26,37 @@ Point `NCMAIL` at a scratch directory holding a copy of an `.ncmailrc`. Because
 the paths in that file are absolute, the program still reads and writes the real
 mail directories unless you edit them — decide which you want before running.
 
+## Sending keys
+
+- One key per `send-keys` call, roughly a quarter of a second apart. A burst can
+  overflow the input buffer. Send `Enter` as its own call.
+- Named keys work: `Down`, `Up`, `Enter`, `Home`, `End`, `F2`. Literal text needs
+  `-l`, as in `tmux send-keys -l -t t "Some subject"`.
+- A key that appears to do nothing may simply not have arrived. Confirm with a
+  key whose effect is lasting and visible before deciding the program is at
+  fault.
+
+## Navigate in two passes, never one
+
+Do not compose a long keystroke sequence in advance; it will drift out of step.
+Capture the pane, read where the cursor actually is, then send the next key.
+
+- **Confirm the highlighted row before pressing `Enter`.** The highlight shows up
+  only in `capture-pane -ep` output, as a reverse-video attribute; the plain text
+  capture drops it. Landing on the neighbouring item gives a screen that looks
+  plausible and is wrong.
+- **First-run prompts fire once.** The "a new .ncmailrc has been written, edit it
+  now?" prompt appears on the first run and not the second, so a fixed sequence
+  shifts by one key and every later step lands somewhere unintended.
+- **A stray key can persist.** The area and letter list modes are written back to
+  the rc file, so an accidental `L` leaves the next run in a different view,
+  sometimes an empty one.
+- **An empty list is usually a filtered view**, not missing data. Check the
+  window title, which names the current mode, before concluding the packet is
+  wrong.
+- A stray keystroke can also open a confirmation prompt, including one to delete
+  a packet. Read the pane before answering anything you did not mean to open.
+
 ## Facts about the UI worth knowing before scripting it
 
 - **`R` (reply) works in the letter window, not the letter list.** From the list,
@@ -99,6 +130,43 @@ after:
 ```
 grep -o $'\x1b\[[0-9;]*m' cap.txt | sort | uniq -c | sort -rn
 ```
+
+## Inspecting the bytes the program writes
+
+When the question is encoding or escape sequences rather than layout, wrap the
+program in `script` to log the pty stream:
+
+```
+script -q -c "./builddir/ncmail /path/to/packet" /tmp/out.raw
+```
+
+- `script` block-buffers and flushes when the child exits cleanly, so quit the
+  program through its own exit path instead of killing it, or the tail is lost.
+- The log is not a screen. It is every write concatenated with cursor movement in
+  between, so stripping the escapes gives overlapping text rather than a layout.
+  Use it only for byte-level questions, such as whether a character went out as
+  UTF-8 or as one raw high byte.
+
+## Comparing against an earlier build
+
+To show that a display change did what it claims, build the previous commit in a
+temporary worktree and drive both the same way:
+
+```
+git worktree add /tmp/pre <commit>
+meson setup /tmp/pre/bd /tmp/pre && meson compile -C /tmp/pre/bd
+```
+
+Compare the captured screens, and the SGR histograms for colours. If the fault
+does not appear in the older build either, say so instead of reporting the change
+as a fix: rendering faults often depend on the terminal, the curses version and
+timing.
+
+## Afterwards
+
+Kill every tmux session you started, and remove temporary worktrees with
+`git worktree remove --force`. Check `git worktree list` when you are done, and
+leave alone any worktree you did not create.
 
 ## Character set behaviour to keep in mind when reading a screen
 
