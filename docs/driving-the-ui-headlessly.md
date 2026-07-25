@@ -76,6 +76,14 @@ Capture the pane, read where the cursor actually is, then send the next key.
   the packet's alias or login name from CONTROL.DAT (`LetterWindow::setToFrom`).
   It is editable in the header window, which is the only way to change it for a
   single message.
+- **Editing `From` changes the local packet, not necessarily the posted
+  message.** A board may ignore the name in an uploaded reply and attribute the
+  message to the account it came from. That is what happened here: three messages
+  written with `From` set to another name came back in the next packet under the
+  account name. Whether the field is honoured is the board's decision, so do not
+  treat the name shown in the reply area as proof of how a message will be
+  attributed. If a message needs to be credited to someone else, say so in the
+  message text.
 - **The tagline window** (shown after editing, when `UseTaglines` is on) uses `A`
   to add, `E` to edit, `R` for random, `K` to delete, `S` to sort, `Enter` to
   apply, `Q` to apply none. A tagline added with `A` is appended to the tagline
