@@ -35,7 +35,8 @@ pktbase.$(O): mmail/pktbase.cc mmail/mmail.h mmail/../config.h \
   mmail/../interfac/mysystem.h mmail/compress.h mmail/pktbase.h
 qwk.$(O): mmail/qwk.cc mmail/qwk.h mmail/pktbase.h mmail/mmail.h \
   mmail/../config.h mmail/../mmail/misc.h mmail/../mmail/resource.h \
-  mmail/../interfac/mysystem.h mmail/compress.h
+  mmail/../interfac/mysystem.h mmail/qwkhdr.h mmail/qwkvote.h \
+  mmail/compress.h
 read.$(O): mmail/read.cc mmail/mmail.h mmail/../config.h \
   mmail/../mmail/misc.h mmail/../mmail/resource.h \
   mmail/../interfac/mysystem.h mmail/compress.h
@@ -135,4 +136,6 @@ tagline.$(O): interfac/tagline.cc interfac/interfac.h \
   interfac/isoconv.h interfac/tagline.h
 qheader.$(O): mmail/qheader.cc mmail/qwk.h mmail/pktbase.h mmail/mmail.h \
   mmail/../config.h mmail/../mmail/misc.h mmail/../mmail/resource.h \
-  mmail/../interfac/mysystem.h mmail/qwkhdr.h
+  mmail/../interfac/mysystem.h mmail/qwkhdr.h mmail/qwkvote.h
+qwkhdr.$(O): mmail/qwkhdr.cc mmail/qwkhdr.h mmail/misc.h
+qwkvote.$(O): mmail/qwkvote.cc mmail/qwkvote.h mmail/qwkhdr.h mmail/misc.h

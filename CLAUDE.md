@@ -55,7 +55,13 @@ meson setup builddir --buildtype=release -Dstrip=true   # stripped release
 - Legacy cross-compiler makefiles (kept; meson can't drive these toolchains):
   `Makefile.bcc` (Borland/Turbo C++, DOS/Win), `Makefile.wcc` (Watcom/wmake).
   `Makefile.vc` (MSVC/nmake) is redundant with the meson MSVC path and could be
-  retired. They share the `depend` file (`make dep` regenerates it).
+  retired. **Only `Makefile.wcc` is built in CI** (`dos.yml`); `Makefile.bcc`,
+  `tclist` and `Makefile.vc` are exercised by nothing, so edits to them are
+  unverified until someone runs the toolchain by hand. Only `Makefile.vc` consumes the `depend` file (`!include depend`) —
+  `Makefile.bcc` and `Makefile.wcc` use `.autodepend` and compute their own. So
+  a missing `depend` entry costs nothing but nmake incremental rebuilds. There
+  is no plain `Makefile` to run `make dep` against; regenerate an entry by hand
+  with `g++ -MM -I. mmail/<file>.cc` and rewrite the target as `<file>.$(O):`.
 - **`Makefile.wcc` is exercised in CI via an OpenWatcom cross-build** (`dos.yml`):
   `SYS=DOS16` (true 16-bit, `wpp -ml`) or `SYS=DOS32` (DOS/4GW). It needs a DOS
   PDCurses lib (`wmake -f Makefile.wcc MODEL=l` under PDCurses' `dos/`). Two
@@ -63,6 +69,8 @@ meson setup builddir --buildtype=release -Dstrip=true   # stripped release
   (Linux-hosted Watcom emits `.o`, the makefiles want `.obj`), and the link line
   is `file { $(MOBJS) $(IOBJS) }`, not `file *.obj` (the wildcard only works on
   real DOS, where wlink expands it and the shell doesn't pre-glob).
+- Developer notes that outlive a session live in `docs/` — currently the
+  Synchronet QWK extension reference and the headless UI-testing harness.
 - `ncmail.1` is committed and current; meson installs it as-is and only
   regenerates from `MANUAL.md` if `go-md2man` is installed (Arch:
   `extra/go-md2man`). Edit `MANUAL.md`, not `ncmail.1`; the `docs.yml` CI job
@@ -106,6 +114,34 @@ plus `file_list`/`file_header` for filesystem browsing.
 Adding or changing a format means working through these interfaces: implement
 the `specific_driver`/`reply_driver` virtuals (usually by subclassing
 `pktbase`/`pktreply`), then register detection in `detect_and_open()`.
+
+### Synchronet QWK extensions (`mmail/qwkhdr.*`, `mmail/qwkvote.*`)
+
+Two optional files a Synchronet QWK packet may carry, each with a
+self-contained parser that has no curses and no globals, so both are
+unit-tested (`tests/qwkhdr_test.cc`, `tests/qwkvote_test.cc`):
+
+- **HEADERS.DAT** → `qwkHeaders`. Full-length Sender/To/Subject (beyond the
+  25-char MESSAGES.DAT fields, without needing QWKE), plus `Message-ID` and the
+  `Utf8` flag. `qwkpack::getNextLetter()` prefers these when present.
+- **VOTING.DAT** → `qwkVoting`. Up/down vote tallies per message, and polls.
+
+The `.ini`-ish line helpers both parsers share (`iniTrim`, `iniKeyEq`,
+`iniSplit`) live in `qwkhdr.{h,cc}` — reuse them rather than re-rolling a
+key/value split.
+
+Two consequences worth knowing before touching this code. **Vote tallies depend
+on HEADERS.DAT**, because a ballot names its target by Message-ID and there is
+no other way to identify it. And **polls are bodyless status-`V` records that
+Synchronet leaves out of the `.NDX` files**, so `qwkpack::readIndices()` forces
+the `.DAT`-scanning index path whenever a packet contains polls, and
+`qwkpack::getBody()` synthesizes their text. On the reply side,
+`qwkreply::castVote()` writes votes back out as the same bodyless records plus
+a VOTING.DAT in the `.REP`.
+
+**Read `docs/synchronet-qwk-extensions.md` before changing any of this.** It has
+the wire format, what Synchronet does and does not read on import, and the
+traps — several of which are not guessable from the format description.
 
 ### Interface (`interfac/interfac.h`)
 
