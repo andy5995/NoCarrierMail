@@ -20,6 +20,14 @@ to messages in the Blue Wave, QWK, OMEN, SOUP, and OPX formats.
 NoCarrierMail is free software, distributed under the [GNU General Public
 License][gpl], version 3 or later.
 
+Downloads, help, and where to take part:
+
+- [Source code][github] -- the project on GitHub
+- [Latest release][releases] -- prebuilt binaries for the newest version
+- [Snapshot builds][snapshot] -- built from the latest code, for testing
+- [Discussions][discussions] -- questions and general talk
+- [Issue tracker][issues] -- bugs and feature requests
+
 
 ## Features
 
@@ -37,12 +45,6 @@ Additions in this fork (see [HISTORY.md] for the full list):
   and text selected.
 * A **unit-test suite** (`meson test`), also run under
   AddressSanitizer/UBSan, plus several memory-safety fixes.
-
-
-## Downloads
-
-Prebuilt binaries, when available, are on the [releases page][releases].
-To build from source instead, see below.
 
 
 ## Building
@@ -79,9 +81,8 @@ If you used MultiMail before, you can keep your old settings. Copy your
 
 ## Contributing
 
-Bug reports, suggestions, and pull requests are welcome on the
-[GitHub project][github]. Use the [issue tracker][issues] for problems and
-feature requests.
+Bug reports, suggestions, and pull requests are welcome. See the links at
+the top of this file.
 
 
 ## Credits
@@ -106,5 +107,7 @@ Earlier bug reports and suggestions are noted in the [HISTORY.md] file.
 [maintainer]: https://github.com/andy5995
 [github]: https://github.com/andy5995/NoCarrierMail
 [issues]: https://github.com/andy5995/NoCarrierMail/issues
+[discussions]: https://github.com/andy5995/NoCarrierMail/discussions
 [releases]: https://github.com/andy5995/NoCarrierMail/releases/latest
+[snapshot]: https://github.com/andy5995/NoCarrierMail/releases/tag/snapshot
 [wmcbrine]: https://wmcbrine.com/MultiMail/
