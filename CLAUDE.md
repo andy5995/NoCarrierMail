@@ -50,14 +50,18 @@ meson setup builddir --buildtype=release -Dstrip=true   # stripped release
   `meson fmt -eir` after editing `meson.build`/`meson_options.txt`.
 - **Adding/removing a `.cc` means editing `meson.build`'s `ncmail_src`/
   `interfac_src` lists AND the legacy makefiles' object lists (`Makefile.bcc`,
-  `Makefile.vc`, `Makefile.wcc`, and `tclist`).** That source-list duplication is
-  the main upkeep cost of keeping the legacy makefiles around.
+  `Makefile.vc`, `Makefile.wcc`, `tclist`, and `depend`).** That source-list
+  duplication is the main upkeep cost of keeping the legacy makefiles around.
+  `sh tools/check-source-lists.sh` verifies all six agree, and CI runs it
+  (`makefiles.yml`), so a forgotten entry fails the build instead of lurking.
 - Legacy cross-compiler makefiles (kept; meson can't drive these toolchains):
   `Makefile.bcc` (Borland/Turbo C++, DOS/Win), `Makefile.wcc` (Watcom/wmake).
   `Makefile.vc` (MSVC/nmake) is redundant with the meson MSVC path and could be
-  retired. **Only `Makefile.wcc` is built in CI** (`dos.yml`); `Makefile.bcc`,
-  `tclist` and `Makefile.vc` are exercised by nothing, so edits to them are
-  unverified until someone runs the toolchain by hand. Only `Makefile.vc` consumes the `depend` file (`!include depend`) —
+  retired. CI builds `Makefile.wcc` (`dos.yml`, OpenWatcom → DOS16) and
+  `Makefile.vc` (`makefiles.yml`, MSVC nmake against a PDCurses checkout).
+  **`Makefile.bcc` and `tclist` are built by nothing** — no runner has
+  Borland/Turbo C++ — so they are covered only by the source-list check, which
+  catches a forgotten file but not a bad Borland directive. Only `Makefile.vc` consumes the `depend` file (`!include depend`) —
   `Makefile.bcc` and `Makefile.wcc` use `.autodepend` and compute their own. So
   a missing `depend` entry costs nothing but nmake incremental rebuilds. There
   is no plain `Makefile` to run `make dep` against; regenerate an entry by hand
