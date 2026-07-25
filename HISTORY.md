@@ -4,6 +4,9 @@ Revision History
 (in-progress)
 -------------
 
+- Read Synchronet's VOTING.DAT and show each message's up/down vote count next
+  to the message number. Only the votes carried by the packet are counted.
+
 - On a UTF-8 terminal, draw text through the wide curses API instead of writing
   raw single bytes, so accented characters no longer disappear or swallow the
   character next to them. CP437 text is mapped to Unicode for display. (#29)

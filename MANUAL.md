@@ -80,6 +80,12 @@ first switches to a marked-only mode, then to all messages, then back to
 unread-only. Also, the default mode -- unread or all -- can be set in
 the .ncmailrc.
 
+Some Synchronet QWK packets include a VOTING.DAT file. It records the
+up and down votes that users cast on messages. When a message has votes,
+the count is shown next to the message number in the letter window, in
+the form "+3/-1". This count only includes the votes that came with the
+packet, so it may be lower than the count on the BBS.
+
 Multiple sort modes are available in the packet and letter lists; you
 can cycle through them by pressing '$'. The default sort modes are set
 in the .ncmailrc.

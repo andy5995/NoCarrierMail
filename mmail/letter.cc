@@ -99,7 +99,7 @@ letter_header::letter_header(const char *subjectA,
     const char *followA, const char *replyA, bool qpencA) : driver(driverA),
     replyTo(replyToA), LetterID(LetterIDA), AreaID(AreaIDA), privat(privatA),
     length(lengthA), msgNum(msgNumA), netAddr(netAddrA), charset(charsetA),
-    qpenc(qpencA)
+    qpenc(qpencA), upVotes(0), downVotes(0)
 {
     readO = mm.getReadObject(driver);
 
@@ -313,6 +313,25 @@ bool letter_header::isQP() const
 void letter_header::setQP(bool qpencA)
 {
     qpenc = qpencA;
+}
+
+// Synchronet VOTING.DAT tallies. Only ever a floor: a packet carries the
+// ballots that were exported into it, not the BBS's running total.
+
+void letter_header::setVotes(int upA, int downA)
+{
+    upVotes = upA;
+    downVotes = downA;
+}
+
+int letter_header::getUpVotes() const
+{
+    return upVotes;
+}
+
+int letter_header::getDownVotes() const
+{
+    return downVotes;
 }
 
 // -----------------------------------------------------------------
@@ -541,6 +560,16 @@ bool letter_list::isQP() const
 void letter_list::setQP(bool qpencA)
 {
     letterHeader[currentLetter]->setQP(qpencA);
+}
+
+int letter_list::getUpVotes() const
+{
+    return letterHeader[currentLetter]->getUpVotes();
+}
+
+int letter_list::getDownVotes() const
+{
+    return letterHeader[currentLetter]->getDownVotes();
 }
 
 bool letter_list::getRead()

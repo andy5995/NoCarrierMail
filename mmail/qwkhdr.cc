@@ -13,8 +13,7 @@ extern "C" {
 #include <stdlib.h>
 }
 
-// Trim leading/trailing whitespace in place; returns the trimmed start.
-static char *trim(char *s)
+char *iniTrim(char *s)
 {
     while (*s && isspace((unsigned char) *s))
         s++;
@@ -26,8 +25,7 @@ static char *trim(char *s)
     return s;
 }
 
-// Case-insensitive whole-string compare (no dependency on strcasecmp/stricmp).
-static bool keyeq(const char *a, const char *b)
+bool iniKeyEq(const char *a, const char *b)
 {
     while (*a && *b) {
         if (tolower((unsigned char) *a) != tolower((unsigned char) *b))
@@ -75,7 +73,7 @@ void qwkHeaders::parse(const char *text)
         if (nl)
             *nl = '\0';
 
-        char *t = trim(line);
+        char *t = iniTrim(line);
 
         if (*t == '[') {
             // Section header: [<hex offset into MESSAGES.DAT>]
@@ -102,8 +100,8 @@ void qwkHeaders::parse(const char *text)
 
             if (sep) {
                 *sep = '\0';
-                char *key = trim(t);
-                char *value = trim(sep + 1);
+                char *key = iniTrim(t);
+                char *value = iniTrim(sep + 1);
                 if (*key) {
                     field *f = new field;
                     f->key = strdupplus(key);
@@ -143,7 +141,7 @@ const char *qwkHeaders::get(unsigned long offset, const char *key) const
     section *s = findSection(offset);
     if (s)
         for (field *f = s->fields; f; f = f->next)
-            if (keyeq(f->key, key))
+            if (iniKeyEq(f->key, key))
                 return f->value;
     return 0;
 }

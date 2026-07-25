@@ -27,6 +27,7 @@ pktbase.obj
 qheader.obj
 qwk.obj
 qwkhdr.obj
+qwkvote.obj
 omen.obj
 soup.obj
 opx.obj

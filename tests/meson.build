@@ -6,6 +6,7 @@
 tests = [
     {'name': 'misc', 'extra': mm_misc_src},
     {'name': 'qwkhdr', 'extra': mm_qwkhdr_src + mm_misc_src},
+    {'name': 'qwkvote', 'extra': mm_qwkvote_src + mm_qwkhdr_src + mm_misc_src},
     {'name': 'qheader', 'extra': mm_qheader_src + mm_misc_src},
 ]
 

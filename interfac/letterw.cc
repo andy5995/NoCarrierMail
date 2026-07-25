@@ -466,8 +466,17 @@ void LetterWindow::UpdateHeader()
         mm.areaList->gotoArea(orgarea);
 
     header->attrib(C_LHMSGNUM);
-    sprintf(tmp, "%ld (%d of %d)", mm.letterList->getMsgNum(),
-            mm.letterList->getCurrent() + 1, mm.areaList->getNoOfLetters());
+    int j = sprintf(tmp, "%ld (%d of %d)", mm.letterList->getMsgNum(),
+                    mm.letterList->getCurrent() + 1,
+                    mm.areaList->getNoOfLetters());
+
+    // Synchronet VOTING.DAT tallies, when the packet shipped any for this
+    // message. Only the votes carried by this packet are counted.
+    int up = mm.letterList->getUpVotes();
+    int down = mm.letterList->getDownVotes();
+    if (up || down)
+        sprintf(tmp + j, "  +%d/-%d", up, down);
+
     header->put(0, 8, tmp);
 
     if (orgarea != -1)

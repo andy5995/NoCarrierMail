@@ -317,6 +317,7 @@ class letter_header
     long msgNum;
     net_address netAddr;
     bool charset, qpenc;
+    int upVotes, downVotes;
  public:
     letter_header(const char *, const char *, const char *,
         const char *, const char *, long, int, long, int, bool,
@@ -355,6 +356,9 @@ class letter_header
 
     void setLatin(bool);
     void setQP(bool);
+    void setVotes(int, int);
+    int getUpVotes() const;
+    int getDownVotes() const;
 
     bool getRead();
     void setRead();
@@ -403,6 +407,8 @@ class letter_list
     bool isPersonal() const;
     bool isLatin() const;
     bool isQP() const;
+    int getUpVotes() const;
+    int getDownVotes() const;
 
     void setQP(bool);
 

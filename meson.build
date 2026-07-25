@@ -101,6 +101,7 @@ ncmail_src = files(
     'mmail/qheader.cc',
     'mmail/qwk.cc',
     'mmail/qwkhdr.cc',
+    'mmail/qwkvote.cc',
     'mmail/read.cc',
     'mmail/resource.cc',
     'mmail/soup.cc',
@@ -161,6 +162,7 @@ install_subdir('colors', install_dir: get_option('docdir'))
 if get_option('tests')
     mm_misc_src = files('mmail/misc.cc')
     mm_qwkhdr_src = files('mmail/qwkhdr.cc')
+    mm_qwkvote_src = files('mmail/qwkvote.cc')
     mm_qheader_src = files('mmail/qheader.cc')
     subdir('tests')
 endif

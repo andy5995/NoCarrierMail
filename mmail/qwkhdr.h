@@ -14,6 +14,12 @@
    the key/value separator. This class is self-contained (no curses, no
    globals) so it can be unit-tested in isolation. */
 
+// Shared with the VOTING.DAT parser, which reads the same .ini-ish syntax.
+// Trim leading/trailing whitespace in place; returns the trimmed start.
+char *iniTrim(char *);
+// Case-insensitive whole-string compare (no strcasecmp/stricmp dependency).
+bool iniKeyEq(const char *, const char *);
+
 class qwkHeaders {
     struct field {
         char *key, *value;

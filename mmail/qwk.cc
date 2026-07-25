@@ -56,6 +56,7 @@ qwkpack::qwkpack() : pktbase()
     readIndices();
 
     loadHeaders();
+    loadVoting();
 
     listBulletins((const char (*)[13]) newsfile, 1);
 }
@@ -280,21 +281,44 @@ void qwkpack::readIndices()
     }
 }
 
-void qwkpack::loadHeaders()
+// Read a whole packet file into a null-terminated buffer for the .ini-style
+// parsers. Returns 0 if it's missing or empty; caller deletes[] the result.
+static char *slurpWorkFile(const char *name)
 {
-    FILE *hdrFile = mm.workList->ftryopen("headers.dat");
-    if (!hdrFile)
-        return;
+    FILE *f = mm.workList->ftryopen(name);
+    if (!f)
+        return 0;
 
+    char *buf = 0;
     long size = mm.workList->getSize();
     if (size > 0) {
-        char *buf = new char[size + 1];
-        size_t got = fread(buf, 1, size, hdrFile);
+        buf = new char[size + 1];
+        size_t got = fread(buf, 1, size, f);
         buf[got] = '\0';
+    }
+    fclose(f);
+
+    return buf;
+}
+
+void qwkpack::loadHeaders()
+{
+    char *buf = slurpWorkFile("headers.dat");
+
+    if (buf) {
         headers.parse(buf);
         delete[] buf;
     }
-    fclose(hdrFile);
+}
+
+void qwkpack::loadVoting()
+{
+    char *buf = slurpWorkFile("voting.dat");
+
+    if (buf) {
+        votes.parse(buf);
+        delete[] buf;
+    }
 }
 
 // Render a raw "MM-DD-YY HH:MM" QWK date with the user's DateFormat, for
@@ -350,6 +374,7 @@ letter_header *qwkpack::getNextLetter()
     // in place of the 25-char MESSAGES.DAT fields.
     const char *lsubj = q.subject, *lto = q.to, *lfrom = q.from;
     char *csubj = 0, *cto = 0, *cfrom = 0;
+    int upVotes = 0, downVotes = 0;
 
     if (headers.has(pos)) {
         const char *u = headers.get(pos, "Utf8");
@@ -365,6 +390,10 @@ letter_header *qwkpack::getNextLetter()
             lto = cto = hdrField(hrecip, utf8);
         if (hsubj)
             lsubj = csubj = hdrField(hsubj, utf8);
+
+        // VOTING.DAT ballots name their target by message-ID, so a tally can
+        // only be attached to a message whose HEADERS.DAT section has one.
+        votes.get(headers.get(pos, "Message-ID"), upVotes, downVotes);
     }
 
     char ddate[40];
@@ -373,6 +402,8 @@ letter_header *qwkpack::getNextLetter()
     letter_header *newLetter = new letter_header(lsubj, lto, lfrom, ddate,
         0, q.refnum, letterID, q.msgnum, areaID, q.privat, q.msglen, this,
         nullNet, !(!(areas[areaID].attr & LATINCHAR)));
+
+    newLetter->setVotes(upVotes, downVotes);
 
     delete[] cfrom;
     delete[] cto;

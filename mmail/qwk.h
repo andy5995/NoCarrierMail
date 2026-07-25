@@ -11,6 +11,7 @@
 
 #include "pktbase.h"
 #include "qwkhdr.h"
+#include "qwkvote.h"
 
 #define ndxRecLen 5
 
@@ -55,6 +56,7 @@ class qwkpack : public pktbase
     char controlname[26];
     bool qwke, greekqwk;
     qwkHeaders headers;         // Synchronet HEADERS.DAT, if present
+    qwkVoting votes;            // Synchronet VOTING.DAT, if present
 
     unsigned long MSBINtolong(unsigned const char *);
     void readControlDat();
@@ -63,6 +65,7 @@ class qwkpack : public pktbase
     bool externalIndex();
     void readIndices();
     void loadHeaders();
+    void loadVoting();
 
     void getblk(int, long &, long, unsigned char *&, unsigned char *&);
     void postfirstblk(unsigned char *&, letter_header &);
