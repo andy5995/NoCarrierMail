@@ -1,8 +1,8 @@
 Revision History
 ================
 
-(in-progress)
--------------
+0.53 - 2026-07-25
+-----------------
 
 - Support Synchronet's VOTING.DAT: show each message's up/down vote count, show
   polls as messages with their results, and cast your own votes with 'W'.
