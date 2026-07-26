@@ -4,6 +4,9 @@ Revision History
 (in-progress)
 -------------
 
+- The AppImage now bundles its own C library and terminfo database, so it runs
+  on any Linux distribution, including musl-based and very old ones.
+
 
 0.53 - 2026-07-25
 -----------------

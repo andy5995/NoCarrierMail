@@ -23,22 +23,39 @@ on:
 
 jobs:
   build-appimage:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
     env:
       VERSION: ${{ inputs.version }}
+
+    # Built in an Arch container, where the sharun/uruntime tooling and a
+    # current ncurses are available. The AppImage bundles its own libc, so the
+    # build host does not limit where it runs. Official Arch is x86_64-only,
+    # hence the community Arch Linux ARM image (digest-pinned) on the arm leg.
     strategy:
+      fail-fast: false
       matrix:
-        os:
-          - ubuntu-24.04-arm
-          - ubuntu-24.04
+        include:
+          - runner: ubuntu-24.04
+            image: archlinux:latest
+          - runner: ubuntu-24.04-arm
+            image: lopsided/archlinux@sha256:bb1e4b4a564126c7d91c63813a3d3afe34334ec5dd15285ed8b574c88e23fbde
+
+    container:
+      image: ${{ matrix.image }}
 
     steps:
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            base-devel git meson ninja ncurses patchelf wget zsync
+
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Set version
+        shell: bash
         run: |
           if [[ -z "${VERSION}" ]]; then
             if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
@@ -51,19 +68,12 @@ jobs:
           fi
 
       - name: Build AppImage
-        run: |
-          docker compose -f packaging/appimage/docker-compose.yml run --rm build
-
-      - name: Create sha256sum
-        run: |
-          ARCH=$(uname -m)
-          echo "ARCH=${ARCH}" >> $GITHUB_ENV
-          cd out
-          file=$(ls *.AppImage)
-          sha256sum "$file" > "$file.sha256sum";
+        run: ./packaging/appimage/make-appimage.sh
+        env:
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
 
       - name: Artifact Filename
-        run: echo "ARTIFACT_NAME=NoCarrierMail-appImage-${ARCH//\//-}" >> $GITHUB_ENV
+        run: echo "ARTIFACT_NAME=NoCarrierMail-appImage-$(uname -m)" >> $GITHUB_ENV
 
       - if: ${{ github.ref != 'refs/heads/master' }}
         name: Upload AppImage
