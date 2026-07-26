@@ -539,9 +539,13 @@ void omenrep::repFileName()
 // list files to be archived when creating reply packet
 const char *omenrep::repTemplate(bool offres)
 {
-    static char buff[30];
+    static char buff[96];
 
-    sprintf(buff, offres ? "%s *.TXT *.CNF" : "%s *.TXT", replyInnerName);
+    // The globs have to reach the shell unquoted, but the inner name is built
+    // from the packet header, so quote that part.
+    char *qname = quotespace(replyInnerName);
+    sprintf(buff, offres ? "%s *.TXT *.CNF" : "%s *.TXT", qname);
+    delete[] qname;
 
     return buff;
 }

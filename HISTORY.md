@@ -8,6 +8,8 @@ Revision History
   on any Linux distribution, including musl-based and very old ones.
 - New icon. The old one still showed the MultiMail name.
 - The Windows installer is about 1 MB smaller.
+- Quote names taken from a packet before passing them to the archiver. A packet
+  could name itself in a way that ran a command.
 
 
 0.53 - 2026-07-25

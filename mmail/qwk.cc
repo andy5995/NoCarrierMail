@@ -1187,9 +1187,13 @@ void qwkreply::repFileName()
 
 const char *qwkreply::repTemplate(bool offres)
 {
-    static char buff[50];
+    static char buff[112];
 
-    sprintf(buff, (offres && qwke) ? "%s TODOOR.EXT" : "%s", replyInnerName);
+    // The inner name comes from the packet header, and this string is handed
+    // to the shell with the file names alongside it, so quote it.
+    char *qname = quotespace(replyInnerName);
+    sprintf(buff, (offres && qwke) ? "%s TODOOR.EXT" : "%s", qname);
+    delete[] qname;
 
     if (hdrsWritten)
         sprintf(buff + strlen(buff), " HEADERS.DAT");

@@ -175,9 +175,15 @@ bool main_read_class::saveAll()
         fclose(readFile);
     }
 
-    // add the .red file to the packet
-    return !compressAddFile(mm.res.get(PacketDir), mm.res.get(PacketName),
-                            oldFileN ? oldFileN : readFileN);
+    // add the .red file to the packet. compressAddFile passes its last
+    // argument to the shell unquoted (the reply drivers use it for globs),
+    // so quote this one -- it is a single name taken from the packet.
+    char *qname = quotespace(oldFileN ? oldFileN : readFileN);
+    bool ok = !compressAddFile(mm.res.get(PacketDir), mm.res.get(PacketName),
+                               qname);
+    delete[] qname;
+
+    return ok;
 }
 
 const char *main_read_class::readFilePath(const char *FileN)

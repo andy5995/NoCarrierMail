@@ -889,12 +889,17 @@ void bwreply::repFileName()
 
 const char *bwreply::repTemplate(bool offres)
 {
-    static char buff[20];
+    static char buff[80];
 
     if (offres)
         sprintf(buff, "*.*");
-    else
-        sprintf(buff, "%s *.MSG", replyInnerName);
+    else {
+        // The glob has to reach the shell unquoted, but the inner name comes
+        // from the packet header, so quote that part.
+        char *qname = quotespace(replyInnerName);
+        sprintf(buff, "%s *.MSG", qname);
+        delete[] qname;
+    }
 
     return buff;
 }

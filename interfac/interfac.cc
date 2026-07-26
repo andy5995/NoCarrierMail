@@ -192,7 +192,7 @@ int Interface::WarningWindow(const char *warning, const char **selectors,
     // Display each item:
 
     for (p = selectors, curitem = 0; curitem < items; curitem++) {
-        x = curitem * itemlen + ((itemlen - strlen(*p) + 5) >> 1);
+        x = curitem * itemlen + ((itemlen - (int) strlen(*p) + 5) >> 1);
 
         warn.attrib(C_WTEXT);
         warn.put(4, x + 1, *p + 1);
