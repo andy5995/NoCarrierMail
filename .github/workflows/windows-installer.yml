@@ -41,9 +41,9 @@ jobs:
           meson:p
           ninja:p
           pkgconf:p
-          pdcurses:p
+          ncurses:p
 
-    - name: Build (PDCurses, release)
+    - name: Build (ncursesw, release)
       shell: msys2 {0}
       run: |
         meson setup _build --buildtype=release -Dstrip=true -Dtests=false \
