@@ -523,7 +523,7 @@ void LetterWindow::forward_header(FILE *fd, const char *FROM,
             if (((j == from) && mm.areaList->isEmail())
                 || ((j == to) && mm.areaList->isReplyArea()))
 
-                netAdd(p);
+                netAdd(p, sizeof Header - (p - Header));
             letterconv_in(Header);
             fprintf(fd, " * Original%s: %s\n", names[j], Header);
             anyused = true;

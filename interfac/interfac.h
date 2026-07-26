@@ -507,7 +507,7 @@ class LetterWindow
     void lineCount();
     void oneLine(int);
     void Move(int);
-    char *netAdd(char *);
+    char *netAdd(char *, size_t);
     int HeaderLine(ShadowedWin &, char *, int, int, coltype);
     int EnterHeader(char *, char *, char *, bool &);
     void QuoteText(FILE *);

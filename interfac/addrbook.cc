@@ -323,7 +323,12 @@ void AddressBook::oneLine(int i)
         highlighted = curr;
 
     char *tmp = list->lineBuf;
-    int x = curr ? sprintf(tmp, " %-31s %s", curr->name,
+
+    // The name and the address are each up to 255 characters, and a name can
+    // come from a packet's From field, so hold the line to the window width.
+    // screen_init() will not draw below 60 columns, so the address always has
+    // room left after the name column.
+    int x = curr ? sprintf(tmp, " %-31.31s %.*s", curr->name, list_max_x - 33,
                            (const char *) curr->netmail_addr) : 0;
     for (; x < list_max_x; x++)
         tmp[x] = ' ';

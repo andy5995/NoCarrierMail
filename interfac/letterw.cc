@@ -401,13 +401,19 @@ void LetterWindow::Draw(bool redo)
     DrawStat();
 }
 
-char *LetterWindow::netAdd(char *tmp)
+/* Append the net address to a string already built in the caller's buffer.
+   "room" is what is left there, including the terminator: the callers fill most
+   of the buffer first, and an internet address out of a packet has no length
+   limit of its own. Both wrappers cost 3 characters plus the terminator. */
+
+char *LetterWindow::netAdd(char *tmp, size_t room)
 {
     net_address &na = mm.letterList->getNetAddr();
     if (na.isSet) {
         const char *p = na;
-        if (*p)
-            tmp += sprintf(tmp, (na.isInternet ? " <%s>" : " @ %s"), p);
+        if (*p && (room > 4))
+            tmp += sprintf(tmp, (na.isInternet ? " <%.*s>" : " @ %.*s"),
+                           (int) (room - 4), p);
     }
     return tmp;
 }
@@ -485,7 +491,7 @@ void LetterWindow::UpdateHeader()
     header->attrib(C_LHFROM);
     p = strnzcpy(tmp, mm.letterList->getFrom(), maxToFromWidth);
     if (mm.areaList->isEmail())
-        netAdd(p);
+        netAdd(p, sizeof tmp - (p - tmp));
     letterconv_in(tmp);
     header->put(1, 8, tmp);
 
@@ -496,7 +502,7 @@ void LetterWindow::UpdateHeader()
             p = strnzcpy(tmp, p, maxToFromWidth);
             if (mm.areaList->isReplyArea())
                 if (p != tmp)
-                    netAdd(p);
+                    netAdd(p, sizeof tmp - (p - tmp));
         } else
             *tmp = '\0';        // or the From line, still in tmp, is shown
     } else
@@ -889,7 +895,7 @@ void LetterWindow::write_header_to_file(FILE *fd)
             if (((j == from) && mm.areaList->isEmail())
                 || ((j == to) && mm.areaList->isReplyArea()))
 
-                netAdd(p);
+                netAdd(p, sizeof Header - (p - Header));
             letterconv_in(Header);
             fprintf(fd, " %s: %s\n", names[j], Header);
         }

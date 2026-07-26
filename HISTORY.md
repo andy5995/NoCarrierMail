@@ -14,6 +14,8 @@ Revision History
   packet could overflow a buffer.
 - Read the door name and version from a QWK DOOR.ID without assuming the lines
   are well formed. A long or malformed line could overflow a buffer or crash.
+- Keep long names and addresses inside the window when showing a letter header
+  or the address book, and when writing a header to a file.
 
 
 0.53 - 2026-07-25
