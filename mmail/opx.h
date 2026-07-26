@@ -16,7 +16,7 @@ class opxpack : public pktbase
     ocfgHeader confhead;
     char *bulletins;
 
-    char *pstrget(void *);
+    char *pstrget(void *, unsigned);
     void readBrdinfoDat();
     void buildIndices();
 

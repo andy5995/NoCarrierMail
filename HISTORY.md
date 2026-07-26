@@ -10,6 +10,8 @@ Revision History
 - The Windows installer is about 1 MB smaller.
 - Quote names taken from a packet before passing them to the archiver. A packet
   could name itself in a way that ran a command.
+- Limit the length of the text fields read from an OPX packet header. A crafted
+  packet could overflow a buffer.
 
 
 0.53 - 2026-07-25

@@ -236,10 +236,24 @@ void opxpack::endproc(letter_header &mhead)
         fidocheck(mhead);
 }
 
-// Read a Borland Pascal pstring, return a C string
-char *opxpack::pstrget(void *src)
+/* Read a Borland Pascal pstring, return a C string. The leading length byte
+   comes from the packet and can claim up to 255, well past the field it lives
+   in, so clamp it to the field's declared capacity -- otherwise this reads into
+   the neighbouring header fields and hands callers a string longer than their
+   buffers.
+
+   Call it through PSTRGET() so the bound comes from the struct declaration
+   (pstring(y,x) is unsigned char y[x + 1]) instead of a repeated literal. */
+
+#define PSTRGET(field) pstrget(&(field), sizeof (field) - 1)
+
+char *opxpack::pstrget(void *src, unsigned max)
 {
     unsigned len = (unsigned) *((unsigned char *) src);
+
+    if (len > max)
+        len = max;
+
     char *dest = new char[len + 1];
 
     strnzcpy(dest, ((const char *) src) + 1, len);
@@ -253,7 +267,7 @@ void opxpack::readBrdinfoDat()
     brdHeader header;
     brdRec boardrec;
     ocfgRec offrec;
-    char *p, *q, tmp[80];
+    char *p, *q;
     int brdCount, extCount;
     bool hasExtra;
 
@@ -275,22 +289,22 @@ void opxpack::readBrdinfoDat()
     if (!fread(&header, BRD_HEAD_SIZE, 1, brdinfoFile))
         fatalError("Error reading BRDINFO.DAT");
 
-    p = pstrget(&header.bbsid);
-    strcpy(packetBaseName, p);
+    p = PSTRGET(header.bbsid);
+    strnzcpy(packetBaseName, p, sizeof packetBaseName - 1);
     delete[] p;
 
-    BBSName = pstrget(&header.bbsname);
-    SysOpName = pstrget(&header.sysopname);
-    BBSProg = pstrget(&header.bbstype);
+    BBSName = PSTRGET(header.bbsname);
+    SysOpName = PSTRGET(header.sysopname);
+    BBSProg = PSTRGET(header.bbstype);
 
-    p = pstrget(&header.doorid);
-    q = pstrget(&header.doorver);
-    sprintf(tmp, "%s %s", p, q);
-    DoorProg = strdupplus(tmp);
+    p = PSTRGET(header.doorid);
+    q = PSTRGET(header.doorver);
+    DoorProg = new char[strlen(p) + strlen(q) + 2];
+    sprintf(DoorProg, "%s %s", p, q);
     delete[] q;
     delete[] p;
 
-    LoginName = pstrget(&header.username);
+    LoginName = PSTRGET(header.username);
     AliasName = strdupplus(LoginName);
 
     bulletins = header.readerfiles ? new char[header.readerfiles * 13] : 0;
@@ -340,7 +354,7 @@ void opxpack::readBrdinfoDat()
         areas[c].num = getshort(boardrec.confnum);
         sprintf(areas[c].numA, "%d", areas[c].num);
 
-        areas[c].name = pstrget(&boardrec.name);
+        areas[c].name = PSTRGET(boardrec.name);
 
         bool selected = !(!boardrec.scanned);
         if (hasOffConfig) {
