@@ -86,7 +86,15 @@ void AnsiWindow::AnsiLine::pack(chtype *tmp, size_t newlen)
     length = newlen;
 }
 
+/* The character set of the message only matters to the wide output path, so
+   without it the last parameter goes unused -- and -Wextra -Werror, which the
+   macOS and BSD builds use, will not have that. */
+
+#ifdef MM_UTF8_OUT
 void AnsiWindow::AnsiLine::show(Win *win, int i, int xoff, bool latin)
+#else
+void AnsiWindow::AnsiLine::show(Win *win, int i, int xoff, bool)
+#endif
 {
     // Clear first: the art is narrower than the window, so there is a margin
     // on both sides of it, not just to the right.
