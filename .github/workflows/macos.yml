@@ -1,6 +1,12 @@
 name: macOS
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'version number'
+        required: false
+        type: string
   push:
     branches: [ master ]
     paths: &shared_paths
@@ -8,10 +14,15 @@ on:
       - '!**.yml'
       - '!**.md'
       - '**/macos.yml'
+    tags: [ 'v*' ]
 
   pull_request:
     branches: [ master ]
     paths: *shared_paths
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -21,6 +32,9 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
+    # Homebrew's ncurses has the wide API that the system one lacks, which is
+    # what the UTF-8 drawing needs. meson finds it through the pkg_config_path
+    # set in meson.build.
     - name: Install dependencies
       run: brew install meson ninja ncurses
 
@@ -32,3 +46,98 @@ jobs:
 
     - name: Test
       run: meson test -C builddir
+
+  package:
+    name: macos-arm64 tarball
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install dependencies
+      run: brew install meson ninja
+
+    # No ncurses here, and pkg_config_path emptied, so this links the curses in
+    # /usr/lib. Homebrew's is keg-only: a binary linked against it will not run
+    # on a Mac that does not also have it installed, which is no good for
+    # something people download. The wide-curses probe in the setup log says
+    # whether the system one still gets the UTF-8 drawing.
+    - name: Meson setup (release, system curses)
+      run: |
+        meson setup builddir \
+          --buildtype=release -Dstrip=true -Dtests=false \
+          -Dpkg_config_path=
+
+    - name: Build
+      run: meson compile -C builddir
+
+    # Fail rather than ship something that only runs on this runner.
+    - name: Check the binary is self-contained
+      run: |
+        otool -L builddir/ncmail
+        if otool -L builddir/ncmail | tail -n +2 |
+           grep -vE '^\s+(/usr/lib/|/System/Library/)'; then
+            echo "::error::links a non-system library; it would not run elsewhere"
+            exit 1
+        fi
+
+    - name: Set version
+      run: |
+        if [[ -z "${VERSION}" ]]; then
+            if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+                TAG_NAME=${GITHUB_REF#refs/tags/}
+                VERSION=${TAG_NAME#v}
+            else
+                VERSION=snapshot
+            fi
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+        fi
+
+    - name: Stage and pack
+      run: |
+        DIR="NoCarrierMail-${VERSION}-macos-arm64"
+        mkdir -p "out/$DIR"
+        cp builddir/ncmail ncmail.1 README.md HISTORY.md LEGAL.md "out/$DIR/"
+        cp -R colors "out/$DIR/"
+        cp packaging/macos/README-macos.txt "out/$DIR/"
+        cd out
+        tar czf "$DIR.tar.gz" "$DIR"
+        shasum -a 256 "$DIR.tar.gz" > "$DIR.tar.gz.sha256sum"
+        cat "$DIR.tar.gz.sha256sum"
+
+    - if: ${{ github.ref != 'refs/heads/master' }}
+      name: Upload tarball
+      uses: actions/upload-artifact@v7
+      with:
+        name: NoCarrierMail-macos-arm64
+        path: ./out/*.tar.gz*
+        if-no-files-found: error
+
+    - name: Release (Tagged)
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "./out/*.tar.gz*"
+        allowUpdates: true
+        prerelease: false
+        omitBodyDuringUpdate: true
+        omitNameDuringUpdate: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - if: ${{ github.ref == 'refs/heads/master' }}
+      name: Prerelease
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "./out/*.tar.gz*"
+        body: "NoCarrierMail Snapshot Release"
+        allowUpdates: true
+        prerelease: true
+        removeArtifacts: false
+        replacesArtifacts: true
+        omitBodyDuringUpdate: true
+        omitNameDuringUpdate: true
+        tag: snapshot
+        token: ${{ secrets.GITHUB_TOKEN }}
