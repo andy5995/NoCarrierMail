@@ -26,6 +26,7 @@ Win::~Win()
     delete[] buffer;
 #ifdef MM_UTF8_OUT
     delete[] wbuffer;
+    delete[] cbuffer;
 #endif
     delwin(win);
 }
@@ -35,9 +36,19 @@ void Win::init(int height, int width, int topline)
     // All windows are centered horizontally.
 
     win = newwin(height, width, topline, (COLS - width) / 2);
+
+    /* Curses grows a full-width window by itself when the terminal is resized,
+       so getmaxx() can outrun the buffers below. That normally does not show,
+       because the main loop rebuilds every window as soon as it sees
+       KEY_RESIZE -- but a nested input loop (the ANSI animator, a prompt) can
+       read that key and drop it, leaving this window in use at its new size.
+       Keep the width the buffers were built for and bound writes by it. */
+
+    bufwidth = width;
     buffer = new chtype[width + 1];
 #ifdef MM_UTF8_OUT
     wbuffer = new wchar_t[width + 1];
+    cbuffer = new cchar_t[width + 1];
 #endif
     keypad(win, TRUE);
     cursor_off();
@@ -86,6 +97,16 @@ void Win::put(int y, int x, cchar_t *z)
 }
 #endif
 
+int Win::roomleft(int x)
+{
+    int w = getmaxx(win);
+
+    if (w > bufwidth)
+        w = bufwidth;
+
+    return w - x;
+}
+
 void Win::put(int y, int x, const chtype *z, int len)
 {
     // The cast is to suppress warnings with certain implementations
@@ -104,7 +125,7 @@ int Win::put(int y, int x, const char *z, int len)
 
     const int tabwidth = 8;
     chtype z2;
-    int counter = 0, limit = getmaxx(win) - x;
+    int counter = 0, limit = roomleft(x);
 
 #ifdef MM_UTF8_OUT
     const bool wideout = utf8Console;
@@ -176,6 +197,57 @@ int Win::put(int y, int x, const char *z, int len)
 
     return counter;
 }
+
+#ifdef MM_UTF8_OUT
+/* Build one wide cell from a chtype. The character is a byte out of the
+   packet, so it means a CP437 code point unless the message is Latin-1, and
+   setcchar() wants the color pair separately from the other attributes.
+   A_ALTCHARSET has no meaning here: the Unicode character replaces it. */
+
+static void setwidecell(cchar_t *dest, chtype src, bool latin)
+{
+    unsigned char c = src & A_CHARTEXT;
+    wchar_t w[2];
+
+    w[0] = latin ? (wchar_t) c : cp437_to_uni[c];
+    w[1] = L'\0';
+
+    setcchar(dest, w, (attr_t) (src & ~(A_CHARTEXT | A_COLOR | A_ALTCHARSET)),
+             PAIR_NUMBER(src), 0);
+}
+
+/* These two draw a run of cells that do not share one attribute -- the case
+   Win::put(const char *) cannot handle, since it takes the attribute from
+   curratt. cbuffer holds one cell per column, so clamp to what is left of
+   the line. */
+
+void Win::putwide(int y, int x, const chtype *z, int len, bool latin)
+{
+    int limit = roomleft(x);
+
+    if (len > limit)
+        len = limit;
+
+    for (int i = 0; i < len; i++)
+        setwidecell(cbuffer + i, z[i], latin);
+
+    mvwadd_wchnstr(win, y, x, cbuffer, len);
+}
+
+void Win::putwide(int y, int x, const unsigned char *z, int len, chtype att,
+                  bool latin)
+{
+    int limit = roomleft(x);
+
+    if (len > limit)
+        len = limit;
+
+    for (int i = 0; i < len; i++)
+        setwidecell(cbuffer + i, att | z[i], latin);
+
+    mvwadd_wchnstr(win, y, x, cbuffer, len);
+}
+#endif
 
 int Win::attrib(chtype z)
 {
@@ -289,6 +361,31 @@ int Win::ystart()
 }
 #endif
 
+#if defined(USE_SHADOWS) && defined(MM_UTF8_OUT)
+/* Copy one cell of what is already on the screen into the shadow window,
+   recolored. winch() cannot carry a character that does not fit in a byte, so
+   on a UTF-8 terminal the wide calls are the only way to read back anything we
+   drew with them -- otherwise the shadow prints garbage over the art. */
+
+static void shadowcell(WINDOW *dest, WINDOW *src, int sy, int sx, int dy,
+                       int dx)
+{
+    cchar_t cell;
+    wchar_t w[CCHARW_MAX + 1];
+    attr_t attrs;
+    short pair;
+
+    if ((ERR != mvwin_wch(src, sy, sx, &cell)) &&
+        (ERR != getcchar(&cell, w, &attrs, &pair, 0))) {
+        chtype shade = ColorArray[C_SHADOW];
+
+        setcchar(&cell, w, (attr_t) (shade & ~(A_CHARTEXT | A_COLOR)),
+                 PAIR_NUMBER(shade), 0);
+        mvwadd_wch(dest, dy, dx, &cell);
+    }
+}
+#endif
+
 ShadowedWin::ShadowedWin(int height, int width, int topline, coltype backg,
                          const char *title, coltype titleAttrib) :
     Win(height, width, topline, backg)
@@ -300,7 +397,6 @@ ShadowedWin::ShadowedWin(int height, int width, int topline, coltype backg,
 
 #ifdef USE_SHADOWS
     int i, j;
-    chtype *right, *lower;
 # ifndef NCURSES_VERSION
 #  ifdef PDCURSES
     WINDOW *&newscr = curscr;
@@ -316,39 +412,50 @@ ShadowedWin::ShadowedWin(int height, int width, int topline, coltype backg,
     while ((height + topline) > (LINES - 1))
         height--;
 
-    right = new chtype[(height - 1) << 1];
-    lower = new chtype[width + 1];
-
-    // Gather the old text and attribute info:
-
-    for (i = 0; i < (height - 1); i++)
-        for (j = 0; j < 2; j++)
-            right[(i << 1) + j] = (mvwinch(newscr, (topline + i + 1),
-                (firstcol + width + j)) & (A_CHARTEXT | A_ALTCHARSET));
-
-    mvwinchnstr(newscr, (topline + height), (firstcol + 2), lower, width);
-
-    // Redraw it in darkened form:
-
     shadow = newwin(height, width, topline + 1, firstcol + 2);
     leaveok(shadow, TRUE);
 
-    for (i = 0; i < (height - 1); i++)
-        for (j = 0; j < 2; j++)
-            mvwaddch(shadow, i, width - 2 + j,
-                     (right[(i << 1) + j] | ColorArray[C_SHADOW]));
-    for (i = 0; i < width; i++)
-        mvwaddch(shadow, height - 1, i, (lower[i] & (A_CHARTEXT |
-                 A_ALTCHARSET)) | ColorArray[C_SHADOW]);
+# ifdef MM_UTF8_OUT
+    if (utf8Console) {
+        for (i = 0; i < (height - 1); i++)
+            for (j = 0; j < 2; j++)
+                shadowcell(shadow, newscr, (topline + i + 1),
+                           (firstcol + width + j), i, (width - 2 + j));
+        for (i = 0; i < width; i++)
+            shadowcell(shadow, newscr, (topline + height),
+                       (firstcol + 2 + i), (height - 1), i);
+    } else
+# endif
+    {
+        chtype *right = new chtype[(height - 1) << 1];
+        chtype *lower = new chtype[width + 1];
+
+        // Gather the old text and attribute info:
+
+        for (i = 0; i < (height - 1); i++)
+            for (j = 0; j < 2; j++)
+                right[(i << 1) + j] = (mvwinch(newscr, (topline + i + 1),
+                    (firstcol + width + j)) & (A_CHARTEXT | A_ALTCHARSET));
+
+        mvwinchnstr(newscr, (topline + height), (firstcol + 2), lower, width);
+
+        // Redraw it in darkened form:
+
+        for (i = 0; i < (height - 1); i++)
+            for (j = 0; j < 2; j++)
+                mvwaddch(shadow, i, width - 2 + j,
+                         (right[(i << 1) + j] | ColorArray[C_SHADOW]));
+        for (i = 0; i < width; i++)
+            mvwaddch(shadow, height - 1, i, (lower[i] & (A_CHARTEXT |
+                     A_ALTCHARSET)) | ColorArray[C_SHADOW]);
+
+        delete[] lower;
+        delete[] right;
+    }
 
     wnoutrefresh(shadow);
 #endif
     boxtitle(backg, title, ColorArray[titleAttrib]);
-
-#ifdef USE_SHADOWS
-    delete[] lower;
-    delete[] right;
-#endif
 }
 
 ShadowedWin::~ShadowedWin()

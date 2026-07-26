@@ -59,6 +59,12 @@ extern "C" {
 
 #define MINWIDTH 60
 
+/* ANSI art is drawn for an 80-column screen and relies on the cursor wrapping
+   there. Given a wider terminal it has to be held to 80 columns anyway, or
+   every row runs on into the next one and the picture shears. */
+
+#define ANSIWIDTH 80
+
 // Size of the letter-list printf format string (and the header derived from
 // it). Big enough for the compiler's worst case: three "%-N.Ns" fields whose
 // int widths could each print as 11 digits.
@@ -154,14 +160,17 @@ class Win
  protected:
     WINDOW *win;
     chtype *buffer, curratt;
+    int bufwidth;       //columns the buffers were allocated for
 #ifdef MM_UTF8_OUT
     wchar_t *wbuffer;
+    cchar_t *cbuffer;
 #endif
  public:
     Win(int, int, int, chtype);
     Win(int, int, int, coltype);
     virtual ~Win();         // ShadowedWin/InfoWin are deleted via Win *
     void init(int, int, int);
+    int roomleft(int);
     void Clear(chtype);
     void Clear(coltype);
     void put(int, int, chtype);
@@ -172,6 +181,10 @@ class Win
 #endif
     void put(int, int, const chtype *, int = 0);
     int put(int, int, const char *, int = -1);
+#ifdef MM_UTF8_OUT
+    void putwide(int, int, const chtype *, int, bool);
+    void putwide(int, int, const unsigned char *, int, chtype, bool);
+#endif
     int attrib(chtype);
     int attrib(coltype);
     void horizline(int);
@@ -608,10 +621,10 @@ class AnsiWindow
 
         AnsiLine(AnsiLine * = 0);
         ~AnsiLine();
-        int unpack(chtype *);
+        int unpack(chtype *, int);
         void pack(chtype *, size_t);
-        void show(Win *, int);
-        void unpacktext(char *);
+        void show(Win *, int, int, bool);
+        void unpacktext(char *, int);
         void remapzero(chtype newatt);
     };
 
@@ -625,6 +638,7 @@ class AnsiWindow
     int position;       //which row is the first in the window
     int NumOfLines;
     int x, y;           //dimensions of the window
+    int awidth, aleft;  //width of the art, and where it starts on screen
     int cpx, cpy, lpy;  //ANSI positions
     int spx, spy;       //stored ANSI positions
     int tlen;        //maximum X reached
@@ -652,6 +666,7 @@ class AnsiWindow
     void athandle();
     void pipehandle();
     void synhandle();
+    void abortkey(int);
     void cpylow();
     void cpyhigh();
     void cpxhigh();

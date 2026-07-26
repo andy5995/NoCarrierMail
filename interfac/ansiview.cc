@@ -40,7 +40,7 @@ AnsiWindow::AnsiLine *AnsiWindow::AnsiLine::getprev()
     return prev;
 }
 
-int AnsiWindow::AnsiLine::unpack(chtype *tmp)
+int AnsiWindow::AnsiLine::unpack(chtype *tmp, int width)
 {
     int i;
 
@@ -51,7 +51,7 @@ int AnsiWindow::AnsiLine::unpack(chtype *tmp)
         if (length)
             memcpy(tmp, text, length * sizeof(chtype));
 
-    for (i = length; i < COLS; i++)
+    for (i = length; i < width; i++)
         tmp[i] = ' ' | (C_ANSIBACK);
 
     return length;
@@ -86,29 +86,48 @@ void AnsiWindow::AnsiLine::pack(chtype *tmp, size_t newlen)
     length = newlen;
 }
 
-void AnsiWindow::AnsiLine::show(Win *win, int i)
+void AnsiWindow::AnsiLine::show(Win *win, int i, int xoff, bool latin)
 {
+    // Clear first: the art is narrower than the window, so there is a margin
+    // on both sides of it, not just to the right.
+
+    win->attrib(C_ANSIBACK);
+    win->clreol(i, 0);
+
     if (length) {
+#ifdef MM_UTF8_OUT
+        if (utf8Console) {
+            if (isasc)
+                win->putwide(i, xoff, atext, length, att, latin);
+            else
+                win->putwide(i, xoff, text, length, latin);
+        } else
+#endif
         if (isasc) {
             win->attrib(att);
-            win->put(i, 0, (char *) atext, length);
+            win->put(i, xoff, (char *) atext, length);
         } else {
             win->attrib(0);
-            win->put(i, 0, text, length);
+            win->put(i, xoff, text, length);
         }
+        win->attrib(C_ANSIBACK);
     }
-    win->attrib(C_ANSIBACK);
-    win->clreol(i, length);
 }
 
-void AnsiWindow::AnsiLine::unpacktext(char *tmp)
+/* "room" is the size of tmp, terminator included. A line was packed to fit the
+   screen as it was when the art was parsed, which is not necessarily how wide
+   it is now, so the caller's buffer size has to be the bound. */
+
+void AnsiWindow::AnsiLine::unpacktext(char *tmp, int room)
 {
+    int n = (length < room) ? length : (room - 1);
+
     if (isasc) {
-        if (length)
-            memcpy((unsigned char *) tmp, atext, length);
-        tmp += length;
+        if (n)
+            memcpy((unsigned char *) tmp, atext, n);
+        tmp += n;
     } else
-        for (int i = 0; i < length; i++)
+        for (int i = 0; i < n; i++)
             *tmp++ = (text[i] & (A_CHARTEXT));
     *tmp = '\0';
 }
@@ -564,6 +583,21 @@ void AnsiWindow::synhandle()
     }
 }
 
+/* Any key stops the animation. Hand a resize back to the main loop rather than
+   consuming it here: it is what rebuilds the windows, and until it runs this
+   one is a size curses chose and we did not. */
+
+void AnsiWindow::abortkey(int key)
+{
+    if (ERR != key) {
+        ansiAbort = true;
+#ifdef KEY_RESIZE
+        if (KEY_RESIZE == key)
+            ui.setKey(key);
+#endif
+    }
+}
+
 void AnsiWindow::cpylow()
 {
     if (cpy < 0)
@@ -578,8 +612,8 @@ void AnsiWindow::cpyhigh()
 
 void AnsiWindow::cpxhigh()
 {
-    if (cpx > (COLS - 1))
-        cpx = COLS - 1;
+    if (cpx > (awidth - 1))
+        cpx = awidth - 1;
 }
 
 void AnsiWindow::cpxlow()
@@ -719,7 +753,7 @@ void AnsiWindow::checkpos()
         if ((cpy + 1) > (NumOfLines - baseline))
             NumOfLines = cpy + baseline + 1;
 
-        tlen = curr->unpack(chtmp);
+        tlen = curr->unpack(chtmp, awidth);
     }
 }
 
@@ -754,19 +788,35 @@ void AnsiWindow::update(unsigned char c)
     if (!ansiAbort) {
         chtype ouch, localattrib = attrib;
 
-#ifndef ALLCHARSOK              // unprintable control codes
-        switch (c) {            // double musical note
-        case 14:
-            c = 19;
-            break;
-        case 15:                // much like an asterisk
-            c = '*';
-            break;
-        case 155:               // ESC + high-bit = slash-o,
-            c = 'o';            // except in CP 437
-        }
+        /* A UTF-8 terminal can draw every CP437 character, so none of the
+           substitutions below are wanted -- they exist to approximate the
+           art with whatever a single-byte terminal does have. Keep the
+           packet's byte instead and let the drawing code map it, which also
+           means the Charset setting no longer changes what the art looks
+           like: nothing is being translated to fit the console. */
+
+#ifdef MM_UTF8_OUT
+        const bool wideout = utf8Console;
+#else
+        const bool wideout = false;
 #endif
-        if (isoConsole && !isLatin) {
+
+#ifndef ALLCHARSOK              // unprintable control codes
+        if (!wideout)
+            switch (c) {        // double musical note
+            case 14:
+                c = 19;
+                break;
+            case 15:            // much like an asterisk
+                c = '*';
+                break;
+            case 155:           // ESC + high-bit = slash-o,
+                c = 'o';        // except in CP 437
+            }
+#endif
+        if (wideout)
+            ouch = c;
+        else if (isoConsole && !isLatin) {
 #ifdef NCURSES_VERSION
             if (useAltCharset) {
                 ouch = c;
@@ -816,7 +866,7 @@ void AnsiWindow::update(unsigned char c)
             ouch = c;
         }
 
-        if ((c < ' ') || ((c > 126) && (c < 160)))
+        if (!wideout && ((c < ' ') || ((c > 126) && (c < 160))))
             ouch |= A_ALTCHARSET;
 
         ouch |= localattrib;
@@ -831,18 +881,23 @@ void AnsiWindow::update(unsigned char c)
                 cpy = limit;
             }
             animtext->attrib(0);
-            animtext->put(cpy, cpx++, ouch);
+#ifdef MM_UTF8_OUT
+            if (wideout)
+                animtext->putwide(cpy, aleft + cpx++, &ouch, 1, isLatin);
+            else
+#endif
+                animtext->put(cpy, aleft + cpx++, ouch);
             animtext->attrib(C_ANSIBACK);
             animtext->update();
             napms(12);
-            ansiAbort |= (animtext->keypressed() != ERR);
+            abortkey(animtext->keypressed());
         } else {
             checkpos();
             chtmp[cpx++] = ouch;
             if (cpx > tlen)
                 tlen = cpx;
         }
-        if (cpx == COLS) {
+        if (cpx == awidth) {
             cpx = 0;
             cpy++;
         }
@@ -868,8 +923,8 @@ void AnsiWindow::MakeChain()
     ansiAbort = false;
     if (!anim) {
         ResetChain();
-        chtmp = new chtype[COLS];
-        curr->unpack(chtmp);
+        chtmp = new chtype[awidth];
+        curr->unpack(chtmp, awidth);
     }
     attrib = C_ANSIBACK;
     colreset();
@@ -965,8 +1020,8 @@ void AnsiWindow::MakeChain()
                 break;
             case '\t':                  // TAB
                 cpx = ((cpx / 8) + 1) * 8;
-                while (cpx >= COLS) {
-                    cpx -= COLS;
+                while (cpx >= awidth) {
+                    cpx -= awidth;
                     cpy++;
                 }
                 break;
@@ -1045,7 +1100,8 @@ void AnsiWindow::animate()
         statupdate("      Done");
 
     anim = false;
-    while (!ansiAbort && (animtext->inkey() == ERR));
+    while (!ansiAbort)
+        abortkey(animtext->inkey());
 
     animtext->cursor_off();
     delete animtext;
@@ -1057,7 +1113,7 @@ void AnsiWindow::animate()
 
 void AnsiWindow::oneLine(int i)
 {
-    linelist[position + i]->show(text, i);
+    linelist[position + i]->show(text, i, aleft, isLatin);
 }
 
 void AnsiWindow::lineCount()
@@ -1130,7 +1186,9 @@ void AnsiWindow::MakeActive()
     delete[] tmp;
 
     y = LINES - 2;
-    x = COLS;
+    awidth = (COLS > ANSIWIDTH) ? ANSIWIDTH : COLS;
+    aleft = (COLS - awidth) / 2;
+    x = awidth;
 
     for (i = 0; i < 64; i++)
         colorsused[i] = false;
@@ -1207,7 +1265,8 @@ searchret AnsiWindow::search(const char *item)
 {
     searchret found = False;
 
-    char *buffer = new char[COLS + 1];
+    int room = awidth + 1;
+    char *buffer = new char[room];
 
     for (int n = position + 1; (n < NumOfLines) && (found == False); n++) {
 
@@ -1216,7 +1275,7 @@ searchret AnsiWindow::search(const char *item)
             break;
         }
 
-        linelist[n]->unpacktext(buffer);
+        linelist[n]->unpacktext(buffer, room);
         found = searchstr(buffer, item) ? True : False;
 
         if (found == True) {

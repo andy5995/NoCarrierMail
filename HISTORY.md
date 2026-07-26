@@ -16,6 +16,14 @@ Revision History
   are well formed. A long or malformed line could overflow a buffer or crash.
 - Keep long names and addresses inside the window when showing a letter header
   or the address book, and when writing a header to a file.
+- Draw ANSI art with the real block and line characters on a UTF-8 terminal,
+  instead of the substitutes used when a terminal has no such characters. The
+  character set setting no longer changes how the art looks there.
+- Draw the shadow under a popup correctly when the text behind it is not ASCII.
+- Hold ANSI art to 80 columns and centre it. On a wider terminal each row used
+  to run on into the next one, which sheared the picture.
+- Fix a crash when the terminal was resized while the ANSI animator was
+  running. The animator ignored the resize instead of passing it on.
 
 
 0.53 - 2026-07-25
