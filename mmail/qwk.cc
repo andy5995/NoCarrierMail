@@ -608,6 +608,24 @@ void qwkpack::readControlDat()
     fclose(infile);
 }
 
+/* DOOR.ID lines read "KEY = value". Skipping the "= " with strchr(s, '=') + 2
+   walks past the terminator when a line has no '=', or nothing after it, and a
+   packet can contain either. */
+
+static const char *idValue(const char *s)
+{
+    const char *p = strchr(s, '=');
+
+    if (!p)
+        return "";
+
+    p++;
+    while (' ' == *p)
+        p++;
+
+    return p;
+}
+
 void qwkpack::readDoorId()
 {
     bool hasAdd = false, hasDrop = false;
@@ -619,19 +637,23 @@ void qwkpack::readDoorId()
 
     infile = mm.workList->ftryopen("door.id");
     if (infile) {
-        const char *s, *door;
-        char tmp[80], *t;
+        const char *s, *door, *ver;
+        char *t;
 
         t = strdupplus(nextLine());     // DOOR =
         s = nextLine();                 // VERSION =
-        door = strchr(t, '=') + 2;
+        door = idValue(t);
+        ver = idValue(s);
         mm.synchro = !strcmp(door, "Synchronet");
-        sprintf(tmp, "%s %s", door, strchr(s, '=') + 2);
+
+        // Both halves are whole lines out of the packet, so size the
+        // result rather than writing into a fixed buffer.
+        DoorProg = new char[strlen(door) + strlen(ver) + 2];
+        sprintf(DoorProg, "%s %s", door, ver);
         delete[] t;
-        DoorProg = strdupplus(tmp);
 
         s = nextLine();                 // SYSTEM =
-        BBSProg = strdupplus(strchr(s, '=') + 2);
+        BBSProg = strdupplus(idValue(s));
 
         while (!feof(infile)) {
             s = nextLine();

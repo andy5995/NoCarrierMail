@@ -12,6 +12,8 @@ Revision History
   could name itself in a way that ran a command.
 - Limit the length of the text fields read from an OPX packet header. A crafted
   packet could overflow a buffer.
+- Read the door name and version from a QWK DOOR.ID without assuming the lines
+  are well formed. A long or malformed line could overflow a buffer or crash.
 
 
 0.53 - 2026-07-25
