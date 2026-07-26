@@ -23,6 +23,7 @@ on:
 
 jobs:
   build-appimage:
+    name: ${{ matrix.arch }}-appimage
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
@@ -37,9 +38,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: ubuntu-24.04
+          - arch: x86_64
+            runner: ubuntu-24.04
             image: archlinux:latest
-          - runner: ubuntu-24.04-arm
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
             image: lopsided/archlinux@sha256:bb1e4b4a564126c7d91c63813a3d3afe34334ec5dd15285ed8b574c88e23fbde
 
     container:
