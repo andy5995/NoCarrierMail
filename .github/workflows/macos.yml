@@ -22,7 +22,7 @@ jobs:
     - uses: actions/checkout@v7
 
     - name: Install dependencies
-      run: brew install meson ninja
+      run: brew install meson ninja ncurses
 
     - name: Meson setup
       run: meson setup builddir

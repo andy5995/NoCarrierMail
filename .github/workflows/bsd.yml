@@ -31,7 +31,7 @@ jobs:
             version: '7.9'
             install: |
               echo https://cdn.openbsd.org/pub/OpenBSD | sudo tee /etc/installurl
-              sudo pkg_add git meson ninja pkgconf
+              sudo pkg_add git meson ncurses ninja pkgconf
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v7

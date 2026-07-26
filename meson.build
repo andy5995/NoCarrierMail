@@ -6,6 +6,11 @@ project(
     meson_version: '>= 0.59.0',
     default_options: [
         'warning_level=3',
+        # macOS ships a curses too old to have the wide API, so the UTF-8
+        # drawing is compiled out there. Look in both Homebrew prefixes
+        # (arm64 and Intel) for a "brew install ncurses" that does have it.
+        # The paths are simply absent elsewhere.
+        'pkg_config_path=/opt/homebrew/opt/ncurses/lib/pkgconfig,/usr/local/opt/ncurses/lib/pkgconfig',
     ],
 )
 
@@ -72,6 +77,33 @@ if not curses_dep.found()
 endif
 if not curses_dep.found()
     error('No curses library found (need ncurses or PDCurses)')
+endif
+
+# The wide curses calls the UTF-8 drawing needs are hidden behind
+# _XOPEN_SOURCE_EXTENDED. glibc defines it implicitly, which is why Linux got
+# that drawing and macOS and the BSDs quietly did not, whatever curses they
+# have. Ask for it where the library really does have the wide functions; if
+# the probe fails, nothing is defined and the single-byte fallback stays.
+wide_curses_check = '''
+#define _XOPEN_SOURCE_EXTENDED
+#include <curses.h>
+int main(void) {
+    cchar_t cc;
+    wchar_t w[2];
+    w[0] = 'x';
+    w[1] = 0;
+    setcchar(&cc, w, 0, 0, 0);
+    mvwadd_wchnstr(stdscr, 0, 0, &cc, 1);
+    return 0;
+}
+'''
+
+if not is_msvc and cc.links(
+    wide_curses_check,
+    dependencies: curses_dep,
+    name: 'wide curses API',
+)
+    add_project_arguments('-D_XOPEN_SOURCE_EXTENDED', language: 'cpp')
 endif
 
 deps = [curses_dep]
