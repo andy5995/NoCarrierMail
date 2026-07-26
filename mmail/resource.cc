@@ -148,6 +148,11 @@ bool baseconfig::parseConfig(const char *configFileName)
                     pos++;
                 *pos = '\0';
 
+                /* Older files carry a "Version" line. Nothing reads it any
+                   more, so pass over it quietly rather than announcing it as
+                   an unrecognized keyword. updateConfig() comments it out if
+                   it ever rewrites the file for another reason. */
+
                 if (strncasecmp("ver", resName, 3))
                     processOneByName(resName, resValue);
             }
@@ -232,14 +237,11 @@ bool baseconfig::updateConfig(const char *configname)
         int namelen;
         char *name = keywordOf(line, &namelen);
 
-        if (name && !strncasecmp("ver", name, 3))
-            fprintf(fd, "Version: " MM_VERNUM "\n");
-        else
-            if (name && (findKeyword(name, namelen) < 0)) {
-                fprintf(fd, "# %s\n", line);
-                commented++;
-            } else
-                fprintf(fd, "%s\n", line);
+        if (name && (findKeyword(name, namelen) < 0)) {
+            fprintf(fd, "# %s\n", line);
+            commented++;
+        } else
+            fprintf(fd, "%s\n", line);
 
         line = next;
     }
@@ -277,9 +279,6 @@ void baseconfig::newConfig(const char *configname)
     if (fd) {
         for (p = intro; *p; p++)
             fprintf(fd, "# %s\n", *p);
-
-        fprintf(fd, "\n# The version that last changed the keywords here\n"
-                    "Version: " MM_VERNUM "\n");
 
         for (int x = 0; x < configItemNum; x++) {
             if (comments[x])

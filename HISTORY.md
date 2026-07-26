@@ -32,6 +32,9 @@ Revision History
   of the lines are kept, and the file is only touched when its keywords differ
   from the program's, so a new version alone no longer rewrites it and prompts
   you. (#34)
+- The "Version" line in .ncmailrc and the colors file is no longer written or
+  read. Nothing used it once the check above stopped depending on it. An
+  existing line is ignored, and commented out if the file is ever updated.
 
 
 0.53 - 2026-07-25

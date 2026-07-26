@@ -473,19 +473,12 @@ starting with '#'; you can remove these or add your own, and they are
 kept when the file is updated. If any of the keywords are missing,
 default values will be used.
 
-As of version 0.41, any of these keywords except "Version" may also be
-specified on the command line. Command-line options take precedence over
-those in the config file, but their effect is not guaranteed -- some
-internal pathnames are initialized before the command line is read, for
-example.
+As of version 0.41, any of these keywords may also be specified on the
+command line. Command-line options take precedence over those in the
+config file, but their effect is not guaranteed -- some internal
+pathnames are initialized before the command line is read, for example.
 
 Here are the keywords and their functions:
-
-`Version`
-  The version of NoCarrierMail that last changed the set of keywords in
-  the file. It is written for reference only; whether the file needs
-  updating is decided by comparing its keywords with the ones the program
-  has, not by this value. This keyword is also used in the colors file.
 
 `UserName`
   Your name in plain text, e.g., "UserName: William McBrine". This is
