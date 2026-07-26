@@ -17,8 +17,9 @@ compilers and platforms" near the end of this file.
         ncurses:  <https://invisible-island.net/ncurses/>
         PDCurses: <https://pdcurses.org/>
 
-    If using PDCurses, NoCarrierMail requires version 3.6 or later. (On Linux, you
-    most likely already have ncurses, Meson, and Ninja in your package manager.)
+    If using PDCurses, version 3.6 or later is recommended; the code requires
+    at least 3.1. (On Linux, you most likely already have ncurses, Meson, and
+    Ninja in your package manager.)
 
     At run time, you'll also need InfoZip or PKZIP (and/or LHA, ARJ, etc.) to
     uncompress the packets and compress the replies. InfoZip is available from:

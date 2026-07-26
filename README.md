@@ -50,7 +50,8 @@ Additions in this fork (see [HISTORY.md] for the full list):
 ## Building
 
 You'll need a C++ compiler, Meson, Ninja, and a curses library (ncurses,
-SysV curses, or PDCurses 3.6+). From the top of the source tree:
+SysV curses, or PDCurses 3.1+, 3.6+ recommended). From the top of the
+source tree:
 
     meson setup builddir
     meson compile -C builddir
