@@ -291,15 +291,12 @@ int AnsiWindow::getparm()
 
 void AnsiWindow::cls()
 {
-    if (anim)
-        animtext->Clear(C_ANSIBACK);
-    else {
-        cpy = NumOfLines - baseline - !cpy;
-        checkpos();
+    cpy = NumOfLines - baseline - !cpy;
+    checkpos();
 
-        if (baseline < (NumOfLines - 1))
-            baseline = NumOfLines - 1;
-    }
+    if (baseline < (NumOfLines - 1))
+        baseline = NumOfLines - 1;
+
     posreset();
 }
 
@@ -317,18 +314,12 @@ chtype AnsiWindow::colorcore()
     // Check bold and blinking:
 
     chtype tmpattrib = (cbr ? A_BOLD : 0) | (cfl ? A_BLINK : 0) |
+        (crv ? REVERSE(ccf, ccb) : COL(ccf, ccb));
 
-    // If animating, check for color pair 0 (assumes COLOR_BLACK == 0),
-    // and for remapped black-on-black:
+    // Mark the color pair as used, so MakeActive can find a free one to
+    // stand in for pair 0:
 
-        ((!anim || ((ccb | ccf) || !(oldcolorx | oldcolory))) ?
-        (crv ? REVERSE(ccf, ccb) : COL(ccf, ccb)) :
-        (crv ? REVERSE(oldcolorx, oldcolory) : COL(oldcolorx, oldcolory)));
-
-    // If not animating, mark color pair as used:
-
-    if (!anim)
-        colorsused[(ccf << 3) + ccb] = true;
+    colorsused[(ccf << 3) + ccb] = true;
 
     return tmpattrib;
 }
@@ -583,31 +574,10 @@ void AnsiWindow::synhandle()
     }
 }
 
-/* Any key stops the animation. Hand a resize back to the main loop rather than
-   consuming it here: it is what rebuilds the windows, and until it runs this
-   one is a size curses chose and we did not. */
-
-void AnsiWindow::abortkey(int key)
-{
-    if (ERR != key) {
-        ansiAbort = true;
-#ifdef KEY_RESIZE
-        if (KEY_RESIZE == key)
-            ui.setKey(key);
-#endif
-    }
-}
-
 void AnsiWindow::cpylow()
 {
     if (cpy < 0)
         cpy = 0;
-}
-
-void AnsiWindow::cpyhigh()
-{
-    if (anim && (cpy > (LINES - 2)))
-        cpy = LINES - 2;
 }
 
 void AnsiWindow::cpxhigh()
@@ -636,7 +606,6 @@ void AnsiWindow::escfig()
         break;
     case 'B':                   // cursor down
         cpy += getparm();
-        cpyhigh();
         break;
     case 'C':                   // cursor right
         cpx += getparm();
@@ -653,7 +622,7 @@ void AnsiWindow::escfig()
     case 'H':                   // set cursor position
     case 'f':
         cpy = getparm() - 1;
-        cpylow(); cpyhigh();
+        cpylow();
         cpx = getparm() - 1;
         cpxlow(); cpxhigh();
         break;
@@ -707,7 +676,6 @@ void AnsiWindow::avatar()
         break;
     case 4:                             // cursor down
         cpy++;
-        cpyhigh();
         break;
     case 5:                             // cursor left
         cpx--;
@@ -721,7 +689,6 @@ void AnsiWindow::avatar()
         break;
     case 8:                             // set cursor position
         cpy = source.nextchar();
-        cpyhigh();
         cpx = source.nextchar();
         cpxhigh();
         break;
@@ -785,122 +752,99 @@ void AnsiWindow::update(unsigned char c)
         '_', '[', ']', '~'
     };
 
-    if (!ansiAbort) {
-        chtype ouch, localattrib = attrib;
+    chtype ouch, localattrib = attrib;
 
-        /* A UTF-8 terminal can draw every CP437 character, so none of the
-           substitutions below are wanted -- they exist to approximate the
-           art with whatever a single-byte terminal does have. Keep the
-           packet's byte instead and let the drawing code map it, which also
-           means the Charset setting no longer changes what the art looks
-           like: nothing is being translated to fit the console. */
+    /* A UTF-8 terminal can draw every CP437 character, so none of the
+       substitutions below are wanted -- they exist to approximate the
+       art with whatever a single-byte terminal does have. Keep the
+       packet's byte instead and let the drawing code map it, which also
+       means the Charset setting no longer changes what the art looks
+       like: nothing is being translated to fit the console. */
 
 #ifdef MM_UTF8_OUT
-        const bool wideout = utf8Console;
+    const bool wideout = utf8Console;
 #else
-        const bool wideout = false;
+    const bool wideout = false;
 #endif
 
 #ifndef ALLCHARSOK              // unprintable control codes
-        if (!wideout)
-            switch (c) {        // double musical note
-            case 14:
-                c = 19;
-                break;
-            case 15:            // much like an asterisk
-                c = '*';
-                break;
-            case 155:           // ESC + high-bit = slash-o,
-                c = 'o';        // except in CP 437
-            }
+    if (!wideout)
+        switch (c) {        // double musical note
+        case 14:
+            c = 19;
+            break;
+        case 15:            // much like an asterisk
+            c = '*';
+            break;
+        case 155:           // ESC + high-bit = slash-o,
+            c = 'o';        // except in CP 437
+        }
 #endif
-        if (wideout)
-            ouch = c;
-        else if (isoConsole && !isLatin) {
+    if (wideout)
+        ouch = c;
+    else if (isoConsole && !isLatin) {
 #ifdef NCURSES_VERSION
-            if (useAltCharset) {
-                ouch = c;
-                if (c > 159)
-                    ouch |= A_ALTCHARSET;
-            } else
+        if (useAltCharset) {
+            ouch = c;
+            if (c > 159)
+                ouch |= A_ALTCHARSET;
+        } else
 #endif
-            {
-                if ((c > 175) && (c < 224)) {
-                    ouch = acstrans[c - 176];
+        {
+            if ((c > 175) && (c < 224)) {
+                ouch = acstrans[c - 176];
 
-                    // IBM character 219 should map to ACS_BLOCK, but
-                    // since that's widely unimplemented, we map it to a
-                    // reverse space instead. Note that some terminals
-                    // (like PuTTY) would also like cfl and cbr swapped,
-                    // but XFree86's xterm prefers otherwise.
+                // IBM character 219 should map to ACS_BLOCK, but
+                // since that's widely unimplemented, we map it to a
+                // reverse space instead. Note that some terminals
+                // (like PuTTY) would also like cfl and cbr swapped,
+                // but XFree86's xterm prefers otherwise.
 
-                    if (c == 219) {
-                        ouch = ' ';
+                if (c == 219) {
+                    ouch = ' ';
 
-                        crv = !crv;
-                        localattrib = colorcore();
-                        crv = !crv;
-                    }
+                    crv = !crv;
+                    localattrib = colorcore();
+                    crv = !crv;
+                }
 
-                    // suppress or'ing of A_ALTCHARSET:
+                // suppress or'ing of A_ALTCHARSET:
+                c = ' ';
+
+            } else {
+                if (c < 32) {
+                    ouch = lowtrans[c];
                     c = ' ';
-
                 } else {
-                    if (c < 32) {
-                        ouch = lowtrans[c];
-                        c = ' ';
-                    } else {
-                        if (c == 127)
-                            c = 'A';
-                        else
-                            if (c & 0x80)
-                                c = (unsigned char) dos2isotab[c & 0x7f];
-                        ouch = c;
-                    }
+                    if (c == 127)
+                        c = 'A';
+                    else
+                        if (c & 0x80)
+                            c = (unsigned char) dos2isotab[c & 0x7f];
+                    ouch = c;
                 }
             }
-        } else {
-            if (!isoConsole && isLatin)
-                if (c & 0x80)
-                    c = (unsigned char) iso2dostab[c & 0x7f];
-            ouch = c;
         }
+    } else {
+        if (!isoConsole && isLatin)
+            if (c & 0x80)
+                c = (unsigned char) iso2dostab[c & 0x7f];
+        ouch = c;
+    }
 
-        if (!wideout && ((c < ' ') || ((c > 126) && (c < 160))))
-            ouch |= A_ALTCHARSET;
+    if (!wideout && ((c < ' ') || ((c > 126) && (c < 160))))
+        ouch |= A_ALTCHARSET;
 
-        ouch |= localattrib;
+    ouch |= localattrib;
 
-        int limit = LINES - 2;
+    checkpos();
+    chtmp[cpx++] = ouch;
+    if (cpx > tlen)
+        tlen = cpx;
 
-        if (anim) {
-            if (cpy > limit) {
-                animtext->wscroll(cpy - limit);
-                for (int i = cpy - limit; i; i--)
-                    animtext->clreol(limit - i + 1, 0);
-                cpy = limit;
-            }
-            animtext->attrib(0);
-#ifdef MM_UTF8_OUT
-            if (wideout)
-                animtext->putwide(cpy, aleft + cpx++, &ouch, 1, isLatin);
-            else
-#endif
-                animtext->put(cpy, aleft + cpx++, ouch);
-            animtext->attrib(C_ANSIBACK);
-            animtext->update();
-            napms(12);
-            abortkey(animtext->keypressed());
-        } else {
-            checkpos();
-            chtmp[cpx++] = ouch;
-            if (cpx > tlen)
-                tlen = cpx;
-        }
-        if (cpx == awidth) {
-            cpx = 0;
-            cpy++;
-        }
+    if (cpx == awidth) {
+        cpx = 0;
+        cpy++;
     }
 }
 
@@ -920,12 +864,10 @@ void AnsiWindow::MakeChain()
     unsigned char c;
     unsigned int blen = 1;
 
-    ansiAbort = false;
-    if (!anim) {
-        ResetChain();
-        chtmp = new chtype[awidth];
-        curr->unpack(chtmp, awidth);
-    }
+    ResetChain();
+    chtmp = new chtype[awidth];
+    curr->unpack(chtmp, awidth);
+
     attrib = C_ANSIBACK;
     colreset();
 
@@ -1040,24 +982,20 @@ void AnsiWindow::MakeChain()
                 update(c);
             }
 
-    } while (c && !ansiAbort && blen);
+    } while (c && blen);
 
-    if (!anim) {
-        curr->pack(chtmp, tlen);
-        delete[] chtmp;
+    curr->pack(chtmp, tlen);
+    delete[] chtmp;
 
-        if (!ansiAbort) {
-            linelist = new AnsiLine *[NumOfLines];
-            curr = head->getnext();
-            int i = 0;
-            while (curr) {
-                linelist[i++] = curr;
-                curr = curr->getnext();
-            }
-        }
-
-        delete head;
+    linelist = new AnsiLine *[NumOfLines];
+    curr = head->getnext();
+    int i = 0;
+    while (curr) {
+        linelist[i++] = curr;
+        curr = curr->getnext();
     }
+
+    delete head;
 }
 
 void AnsiWindow::statupdate(const char *intro)
@@ -1081,34 +1019,6 @@ void AnsiWindow::statupdate(const char *intro)
     statbar->cursor_off();
 
     delete[] tmp;
-}
-
-void AnsiWindow::animate()
-{
-    animtext = new Win(LINES - 1, COLS, 0, C_ANSIBACK);
-    animtext->cursor_on();
-
-    posreset();
-    colreset();
-    anim = true;
-
-    statupdate(" Animating");
-
-    MakeChain();
-
-    if (!ansiAbort)
-        statupdate("      Done");
-
-    anim = false;
-    while (!ansiAbort)
-        abortkey(animtext->inkey());
-
-    animtext->cursor_off();
-    delete animtext;
-
-    header->wtouch();
-    text->wtouch();
-    statupdate();
 }
 
 void AnsiWindow::oneLine(int i)
@@ -1166,14 +1076,11 @@ void AnsiWindow::set(file_header *f, const char *winTitle, bool latin)
 void AnsiWindow::MakeActive()
 {
     int i;
-    bool end, oldAbort;
+    bool end;
 
     header = new Win(1, COLS, 0, C_LBOTTSTAT);
     text = new Win(LINES - 2, COLS, 1, C_ANSIBACK);
     statbar = new Win(1, COLS, LINES - 1, C_LBOTTSTAT);
-
-    anim = false;
-    oldAbort = ansiAbort;
 
     char *tmp = new char[COLS + 1];
     i = sprintf(tmp, " " MM_TOPHEADER, sysname());
@@ -1228,13 +1135,10 @@ void AnsiWindow::MakeActive()
     DrawBody();
     text->delay_update();
     statupdate();
-    ansiAbort = oldAbort;
 }
 
 void AnsiWindow::Delete()
 {
-    ansiAbort = true;
-
 #ifdef PDCURSES
     PDC_set_blink(FALSE);
 #endif
@@ -1391,11 +1295,6 @@ void AnsiWindow::KeyHandle(int key)
                 position = NumOfLines - y;
             DrawBody();
         }
-        break;
-    case 'V':
-    case 'A':
-    case 1:
-        animate();
         break;
     case '1':
         synparse++;

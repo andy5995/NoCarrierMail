@@ -24,6 +24,10 @@ Revision History
   to run on into the next one, which sheared the picture.
 - Fix a crash when the terminal was resized while the ANSI animator was
   running. The animator ignored the resize instead of passing it on.
+- Remove the animation feature from the ANSI viewer. A program written for
+  viewing animated ANSI does the job better.
+- Show the last line of the ANSI viewer's help screen. "Q - Quit ANSI viewer"
+  was cut off.
 
 
 0.53 - 2026-07-25

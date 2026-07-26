@@ -298,9 +298,9 @@ originally intended by activating the ANSI viewer. Press 'v' to start
 it. Press 'q' to leave the ANSI viewer; the navigation keys are the same
 as in the mail-reading window.
 
-The ANSI viewer includes support for animation. While within the ANSI
-viewer, press 'v' again to animate the picture. Press any key to abort
-the animation.
+ANSI art is drawn for a screen 80 columns wide. The viewer holds the
+picture to 80 columns and centres it in a wider window. In a narrower
+window the art will not look right.
 
 The ANSI viewer is also used to display the new files list and
 bulletins, if any are present.
@@ -330,6 +330,14 @@ The Unix versions of NoCarrierMail assume that the console uses Latin-1,
 while the DOSish versions (DOS, OS/2, and Windows) assume the IBM PC
 set. You can override this via the .ncmailrc option "Charset", or on a
 temporary basis by pressing 'c'.
+
+On a terminal that uses UTF-8, NoCarrierMail draws text as Unicode. The
+IBM line and block characters then appear as themselves. Translation
+still happens first, so "Charset" still matters for message text: if it
+does not match the character set of the message, some characters are
+replaced by ones that only look similar. The ANSI viewer is an
+exception. It maps the character set of the message straight to Unicode,
+so "Charset" does not change how ANSI art looks there.
 
 You can also use a different character set by disabling the conversion
 in NoCarrierMail, and letting your terminal handle it. For SOUP packets, and

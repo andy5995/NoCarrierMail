@@ -186,3 +186,8 @@ that sets the flag carries an upstream comment questioning whether it is right.
 When a character looks wrong, check the byte in the packet before assuming the
 display is at fault: a value may already have been folded to something lossy by
 the BBS before the packet was built.
+
+On a UTF-8 terminal the ANSI viewer ignores `Charset` entirely — it maps the
+message's own set straight to Unicode — so toggling `C` there changes nothing
+but the popup. Two captures of the art that differ in no way but the popup is
+the correct result, not a keystroke that failed to arrive.

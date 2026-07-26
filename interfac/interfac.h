@@ -633,7 +633,7 @@ class AnsiWindow
     char escparm[256];  //temp copy of ESC sequence parameters
     const char *title;
     StringFile source;
-    Win *header, *text, *statbar, *animtext;
+    Win *header, *text, *statbar;
     AnsiLine *head, *curr, **linelist;
     int position;       //which row is the first in the window
     int NumOfLines;
@@ -644,9 +644,7 @@ class AnsiWindow
     int tlen;        //maximum X reached
     int ccf, ccb, cfl, cbr, crv;  //colors and attributes
     int oldcolorx, oldcolory;
-    int baseline;       //base for positions in non-anim mode
-    bool anim;          //animate mode?
-    bool ansiAbort;
+    int baseline;       //base for positions after a clear-screen
 #ifdef NCURSES_VERSION
     bool useAltCharset;
 #endif
@@ -666,9 +664,7 @@ class AnsiWindow
     void athandle();
     void pipehandle();
     void synhandle();
-    void abortkey(int);
     void cpylow();
-    void cpyhigh();
     void cpxhigh();
     void cpxlow();
     void escfig();
@@ -679,7 +675,6 @@ class AnsiWindow
     void ResetChain();
     void MakeChain();
     void DestroyChain();
-    void animate();
     void statupdate(const char * = 0);
     void Save();
  public:

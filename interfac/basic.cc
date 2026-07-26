@@ -40,8 +40,8 @@ void Win::init(int height, int width, int topline)
     /* Curses grows a full-width window by itself when the terminal is resized,
        so getmaxx() can outrun the buffers below. That normally does not show,
        because the main loop rebuilds every window as soon as it sees
-       KEY_RESIZE -- but a nested input loop (the ANSI animator, a prompt) can
-       read that key and drop it, leaving this window in use at its new size.
+       KEY_RESIZE -- but a nested input loop, such as a prompt, can read that
+       key and drop it, leaving this window in use at its new size.
        Keep the width the buffers were built for and bound writes by it. */
 
     bufwidth = width;
