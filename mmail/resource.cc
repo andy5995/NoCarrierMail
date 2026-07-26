@@ -59,35 +59,80 @@
 // baseconfig class
 // ================
 
+baseconfig::baseconfig()
+{
+    seen = 0;
+    unknownKeyword = false;
+}
+
 baseconfig::~baseconfig()
 {
+    delete[] seen;
+}
+
+/* Find the keyword at the start of a config line. Returns 0 for a comment, a
+   blank line, or anything without a name and a separator, and otherwise the
+   start of the name, with its length in *len. It does not modify the line, so
+   updateConfig() can ask about text it is going to copy back out unchanged.
+
+   Both callers must agree on where a name ends, or one of them would comment
+   out a line the other had matched. That is why the separator is required
+   rather than accepting end-of-line: parseConfig() still has the trailing
+   newline on the line, and updateConfig() has already removed it. */
+
+static char *keywordOf(char *line, int *len)
+{
+    char *p = line;
+
+    while ((' ' == *p) || ('\t' == *p))
+        p++;
+
+    if (('#' == *p) || ('\n' == *p) || !*p)
+        return 0;
+
+    //skip "bw" -- for backwards compatiblity
+    if (('b' == *p) && ('w' == p[1]))
+        p += 2;
+
+    char *name = p;
+
+    while (*p && (':' != *p) && ('=' != *p) && (' ' != *p) && ('\t' != *p))
+        p++;
+
+    *len = (int) (p - name);
+
+    return (*len && *p) ? name : 0;
+}
+
+int baseconfig::findKeyword(const char *name, int len) const
+{
+    for (int c = 0; c < configItemNum; c++)
+        if (!strncasecmp(names[c], name, len) && !names[c][len])
+            return c;
+
+    return -1;
 }
 
 bool baseconfig::parseConfig(const char *configFileName)
 {
     FILE *configFile;
     char buffer[256], *pos, *resName, *resValue;
-    int vermajor = 0, verminor = 0;
+
+    delete[] seen;
+    seen = new bool[configItemNum];
+    for (int c = 0; c < configItemNum; c++)
+        seen[c] = false;
+    unknownKeyword = false;
 
     configFile = fopen(configFileName, "rt");
     if (configFile) {
         while (myfgets(buffer, sizeof buffer, configFile)) {
-            if ((buffer[0] != '#') && (buffer[0] != '\n')) {
-                pos = buffer;
+            int namelen;
 
-                //leading spaces
-                while (*pos == ' ' || *pos == '\t')
-                    pos++;
+            resName = keywordOf(buffer, &namelen);
 
-                //skip "bw" -- for backwards compatiblity
-                if (*pos == 'b' && pos[1] == 'w')
-                    pos += 2;
-
-                //resName
-                resName = pos;
-                while (*pos != ':' && *pos != '=' &&
-                       *pos != ' ' && *pos != '\t' && *pos)
-                    pos++;
+            if (resName) {
+                pos = resName + namelen;
 
                 if (*pos)
                     *pos++ = '\0';
@@ -103,18 +148,122 @@ bool baseconfig::parseConfig(const char *configFileName)
                     pos++;
                 *pos = '\0';
 
-                if (!strncasecmp("ver", resName, 3))
-                    sscanf(resValue, "%d.%d", &vermajor, &verminor);
-                else
+                if (strncasecmp("ver", resName, 3))
                     processOneByName(resName, resValue);
             }
         }
         fclose(configFile);
     }
 
-    // Does the config file need updating?
-    return (vermajor < MM_MAJOR) || ((vermajor == MM_MAJOR) &&
-           (verminor < MM_MINOR));
+    /* Does the file need updating? The question used to be "is it older than
+       this program", which fired on any version bump -- opening a development
+       cycle was enough to rewrite every user's file and prompt them about it.
+       Ask instead whether its keywords are the ones this version has, which is
+       the only thing an update actually changes. */
+
+    for (int c = 0; c < configItemNum; c++)
+        if (!seen[c])
+            return true;
+
+    return unknownKeyword;
+}
+
+/* Update the file in place: append the keywords it does not have, comment out
+   the ones this version no longer knows, and copy every other line through
+   unchanged. Regenerating the file kept the values of known keywords but threw
+   away the user's own comments, their ordering and their formatting.
+
+   Returns true if there was no file and a fresh one was written instead. */
+
+bool baseconfig::updateConfig(const char *configname)
+{
+    FILE *fd = fopen(configname, "rt");
+
+    if (!fd) {
+        newConfig(configname);
+        return true;
+    }
+
+    // Read it whole: it is about to be written back over itself.
+
+    fseek(fd, 0, SEEK_END);
+    long size = ftell(fd);
+    rewind(fd);
+
+    size_t room = (size_t) size + 1;
+
+    /* A negative size means it is not a seekable file at all -- fopen("rt")
+       succeeds on a directory, and ColorFile is a path a user can point
+       anywhere. The second test catches a file too big for size_t, which only
+       a 16-bit host would trip over. Either way, leave the file alone. */
+
+    if ((size < 0) || ((long) room != (size + 1))) {
+        fclose(fd);
+        pauseError("Cannot read config file to update it");
+        return false;
+    }
+
+    char *old = new char[room];
+    size_t len = fread(old, 1, room - 1, fd);
+
+    old[len] = '\0';
+    fclose(fd);
+
+    fd = fopen(configname, "wt");
+    if (!fd) {
+        delete[] old;
+        pauseError("Error writing config file");
+        return false;
+    }
+
+    printf("Updating %s...\n", configname);
+
+    int commented = 0;
+    char *line = old;
+
+    while (*line) {
+        char *next = strchr(line, '\n');
+
+        if (next)
+            *next++ = '\0';
+        else
+            next = line + strlen(line);
+
+        int namelen;
+        char *name = keywordOf(line, &namelen);
+
+        if (name && !strncasecmp("ver", name, 3))
+            fprintf(fd, "Version: " MM_VERNUM "\n");
+        else
+            if (name && (findKeyword(name, namelen) < 0)) {
+                fprintf(fd, "# %s\n", line);
+                commented++;
+            } else
+                fprintf(fd, "%s\n", line);
+
+        line = next;
+    }
+
+    delete[] old;
+
+    int added = 0;
+
+    for (int x = 0; x < configItemNum; x++)
+        if (!seen[x]) {
+            if (!added)
+                fprintf(fd, "\n# Added by " MM_NAME " v" MM_VERNUM ":\n");
+            if (comments[x])
+                fprintf(fd, "\n# %s\n", comments[x]);
+            fprintf(fd, "%s: %s\n", names[x], configLineOut(x));
+            added++;
+        }
+
+    fclose(fd);
+
+    printf("%d keyword%s added, %d commented out.\n", added,
+           (1 == added) ? "" : "s", commented);
+
+    return false;
 }
 
 void baseconfig::newConfig(const char *configname)
@@ -122,14 +271,15 @@ void baseconfig::newConfig(const char *configname)
     FILE *fd;
     const char **p;
 
-    printf("Updating %s...\n", configname);
+    printf("Creating %s...\n", configname);
 
     fd = fopen(configname, "wt");
     if (fd) {
         for (p = intro; *p; p++)
             fprintf(fd, "# %s\n", *p);
 
-        fprintf(fd, "\nVersion: " MM_VERNUM "\n");
+        fprintf(fd, "\n# The version that last changed the keywords here\n"
+                    "Version: " MM_VERNUM "\n");
 
         for (int x = 0; x < configItemNum; x++) {
             if (comments[x])
@@ -143,16 +293,16 @@ void baseconfig::newConfig(const char *configname)
 
 void baseconfig::processOneByName(const char *resName, const char *resValue)
 {
-    int c;
+    int c = findKeyword(resName, (int) strlen(resName));
 
-    for (c = 0; c < configItemNum; c++)
-        if (!strcasecmp(names[c], resName)) {
-            processOne(c, resValue);
-            break;
-        }
-
-    if (c == configItemNum)
+    if (c < 0) {
+        unknownKeyword = true;
         printf("Unrecognized keyword: %s\n", resName);
+    } else {
+        processOne(c, resValue);
+        if (seen)
+            seen[c] = true;
+    }
 }
 
 // ==============
@@ -329,13 +479,23 @@ resource::resource()
     char *configFileName = fullpath(resourceData[homeDir], RCNAME);
 
     if (parseConfig(configFileName)) {
-        newConfig(configFileName);
-        printf("\nWelcome to " MM_NAME " v" MM_VERNUM "!\n\n"
-               "A new or updated " RCNAME " has been written. "
-               "If you continue now, " MM_NAME " will\nuse the default "
-               "values for any new keywords. (Existing keywords have been "
-               "\npreserved.) If you wish to edit your " RCNAME " first, "
-               "say 'Y' at the prompt.\n\nEdit " RCNAME " now? (y/n) ");
+        bool created = updateConfig(configFileName);
+
+        printf("\nWelcome to " MM_NAME " v" MM_VERNUM "!\n\n");
+
+        if (created)
+            printf("A new " RCNAME " has been written, holding the default "
+                   "values. If you continue\nnow, " MM_NAME " will use "
+                   "those. To edit it first, say 'Y' at the prompt.\n\n");
+        else
+            printf("Your " RCNAME " has been updated in place. Keywords it "
+                   "did not have were\nadded with their default values, and "
+                   "anything this version no longer uses\nwas commented out. "
+                   "Everything else was left as you had it. To look it\nover "
+                   "first, say 'Y' at the prompt.\n\n");
+
+        printf("Edit " RCNAME " now? (y/n) ");
+
         char inp = fgetc(stdin);
 
         if (toupper(inp) == 'Y') {

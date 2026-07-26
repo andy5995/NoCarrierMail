@@ -42,11 +42,17 @@ class baseconfig
     const char **names, **comments, **intro;
     int configItemNum;
 
+    bool *seen;             //keyword was present in the file we parsed
+    bool unknownKeyword;    //file had a keyword this version does not know
+
+    int findKeyword(const char *, int) const;
     bool parseConfig(const char *);
+    bool updateConfig(const char *);
     void newConfig(const char *);
     virtual void processOne(int, const char *) = 0;
     virtual const char *configLineOut(int) = 0;
  public:
+    baseconfig();
     void processOneByName(const char *, const char *);
     virtual ~baseconfig();
 };

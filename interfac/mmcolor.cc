@@ -277,7 +277,7 @@ void ColorClass::Init()
 
     if (usecol)
         if (parseConfig(configname))
-            newConfig(configname);
+            updateConfig(configname);
 
     ColorArray = allcolors;
 }

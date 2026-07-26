@@ -28,6 +28,10 @@ Revision History
   viewing animated ANSI does the job better.
 - Show the last line of the ANSI viewer's help screen. "Q - Quit ANSI viewer"
   was cut off.
+- Update .ncmailrc and the colors file in place: your own comments and the order
+  of the lines are kept, and the file is only touched when its keywords differ
+  from the program's, so a new version alone no longer rewrites it and prompts
+  you. (#34)
 
 
 0.53 - 2026-07-25

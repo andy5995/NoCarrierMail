@@ -29,6 +29,11 @@ provide a better interface to the message base.
 USAGE
 -----
 
+NoCarrierMail needs a screen of at least 60 columns and 19 lines. In
+expert mode 17 lines are enough. If the screen is smaller, the program
+stops and tells you the size it needs. The size is checked again when you
+resize the window, so making a window too small also stops the program.
+
 On most screens, a summary of the available keystroke commands is
 displayed in the lower part of the screen. (You can disable this, and
 free up some screen space, by turning on "ExpertMode".) Note that to save
@@ -464,10 +469,9 @@ CONFIG FILE
 The config file (see above) is a plain text file with a series of
 values, one per line, in the form "KeyWord: Value". The case of the
 keywords is not signifigant. Additional, comment lines may be present,
-starting with '#'; you can remove these or add your own. (But note that
-the comments are replaced by the defaults when you upgrade to a new
-version.) If any of the keywords are missing, default values will be
-used.
+starting with '#'; you can remove these or add your own, and they are
+kept when the file is updated. If any of the keywords are missing,
+default values will be used.
 
 As of version 0.41, any of these keywords except "Version" may also be
 specified on the command line. Command-line options take precedence over
@@ -478,11 +482,10 @@ example.
 Here are the keywords and their functions:
 
 `Version`
-  Specifies the version of NoCarrierMail which last updated the file. This
-  is used to check whether the file should be updated and the "new
-  version" prompt displayed. Note that old values are preserved when the
-  file is updated; the update merely adds any keywords that are new.
-  This keyword is also used in the colors file.
+  The version of NoCarrierMail that last changed the set of keywords in
+  the file. It is written for reference only; whether the file needs
+  updating is decided by comparing its keywords with the ones the program
+  has, not by this value. This keyword is also used in the colors file.
 
 `UserName`
   Your name in plain text, e.g., "UserName: William McBrine". This is
@@ -729,10 +732,15 @@ UPGRADING
 ---------
 
 The basic upgrade procedure is to simply copy the new executable over
-the old one. No other files are needed. When you run a new version of
-NoCarrierMail for the first time, it automatically updates your .ncmailrc and
-ColorFile with any new keywords. (Old keywords, and the values you've
-set for them, are preserved. However, comments are lost.)
+the old one. No other files are needed. When a new version has keywords
+your .ncmailrc or ColorFile does not, it adds them, with their default
+values. Keywords it no longer has are commented out rather than removed.
+The rest of the file is left exactly as you had it, including your own
+comments and the order of the lines.
+
+Nothing is changed, and no prompt appears, when the keywords in the file
+are already the ones the program has. A new version on its own is not a
+reason to touch the file.
 
 
 NOTES
