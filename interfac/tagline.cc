@@ -217,8 +217,15 @@ void TaglineWindow::EnterTagline(const char *tag)
     if (!nodraw) {
         DrawAll();
         doupdate();
-    } else
+    } else {
+        /* The window above is ours: the tagline screen is not the active one,
+           so its Delete() will never run and nothing else frees this. Clear
+           the pointer too -- the active screen uses the same member. */
+
         list->update();
+        delete list;
+        list = 0;
+    }
 }
 
 void TaglineWindow::EditTagline()

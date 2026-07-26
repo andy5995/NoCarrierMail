@@ -32,6 +32,8 @@ Revision History
   of the lines are kept, and the file is only touched when its keywords differ
   from the program's, so a new version alone no longer rewrites it and prompts
   you. (#34)
+- Free the prompt window that "T" (take tagline) opens in the letter window.
+  Each use leaked about 6 KB.
 - Draw text as Unicode on macOS and the BSDs too, where the wide curses calls
   were being compiled out. The build now asks curses for them, and the macOS
   build uses a Homebrew ncurses if one is installed.
