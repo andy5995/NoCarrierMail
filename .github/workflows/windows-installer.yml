@@ -46,7 +46,8 @@ jobs:
     - name: Build (PDCurses, release)
       shell: msys2 {0}
       run: |
-        meson setup _build --buildtype=release -Dstrip=true -Dtests=false
+        meson setup _build --buildtype=release -Dstrip=true -Dtests=false \
+          -Dcpp_link_args="['-static-libstdc++','-static-libgcc']"
         meson compile -C _build
 
     - name: Stage installer files

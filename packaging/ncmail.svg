@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Master icon. ncmail.png and windows/ncmail.ico are generated from this
+       file by make-icons.sh; edit the SVG, not the bitmaps. -->
+  <rect width="256" height="256" fill="#13294B"/>
+  <g fill="none" stroke="#9FB8D8" stroke-width="14" stroke-linejoin="round">
+    <rect x="24" y="32" width="208" height="192" rx="12"/>
+    <path d="M 24 76 L 232 76"/>
+  </g>
+  <g fill="none" stroke="#F0F0F0" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="62" y="112" width="132" height="86" rx="6"/>
+    <path d="M 62 118 L 128 166 L 194 118"/>
+  </g>
+</svg>
