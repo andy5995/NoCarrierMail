@@ -6,6 +6,8 @@ Revision History
 
 - The AppImage now bundles its own C library and terminfo database, so it runs
   on any Linux distribution, including musl-based and very old ones.
+- New icon. The old one still showed the MultiMail name.
+- The Windows installer is about 1 MB smaller.
 
 
 0.53 - 2026-07-25

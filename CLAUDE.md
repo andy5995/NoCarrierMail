@@ -80,6 +80,11 @@ meson setup builddir --buildtype=release -Dstrip=true   # stripped release
   (Linux-hosted Watcom emits `.o`, the makefiles want `.obj`), and the link line
   is `file { $(MOBJS) $(IOBJS) }`, not `file *.obj` (the wildcard only works on
   real DOS, where wlink expands it and the shell doesn't pre-glob).
+- **`packaging/ncmail.svg` is the icon master**; `packaging/ncmail.png` (AppImage,
+  `.desktop`) and `packaging/windows/ncmail.ico` (installer) are generated from it
+  by `packaging/make-icons.sh`. Edit the SVG, not the bitmaps. The `.ico` stores
+  its 256x256 frame as PNG on purpose — Inno Setup embeds `SetupIconFile` frames
+  into setup.exe uncompressed, so a raw frame there costs ~270 KB of installer.
 - Developer notes that outlive a session live in `docs/` — currently the
   Synchronet QWK extension reference and the headless UI-testing harness.
 - `ncmail.1` is committed and current; meson installs it as-is and only
