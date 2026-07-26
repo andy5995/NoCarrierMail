@@ -38,6 +38,12 @@ Additions in this fork (see [HISTORY.md] for the full list):
 * **Full-length QWK headers** via Synchronet's HEADERS.DAT -- both read
   (To/From/Subject beyond the 25-character MESSAGES.DAT limit) and written
   back into reply packets.
+* **Message voting** via Synchronet's VOTING.DAT -- see each message's
+  up/down vote count, read polls and their results as messages, and cast
+  your own vote with `W`.
+* **UTF-8 terminals** are drawn through the wide curses API, so the IBM
+  line and block characters in ANSI art and message text appear as
+  themselves instead of as raw bytes.
 * **Configurable date format** in the reading view (the `DateFormat`
   keyword, a strftime string; defaults to your locale).
 * **External viewer** -- the `L` key opens the current message in a pager
