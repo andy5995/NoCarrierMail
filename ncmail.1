@@ -497,6 +497,37 @@ created automatically; the default Unix values are shown here:
 \fB~/ncmail/save\fR
   The default directory for saving messages.
 
+.SH COMING FROM MULTIMAIL
+NoCarrierMail used to be called MultiMail. Only the configuration file was
+renamed. It was \fB\&.mmailrc\fR on Unix, and \fBmmail.rc\fR on DOS, OS/2 and Windows.
+The default home directory was \fB$HOME/mmail\fR\&. The tagline file, the address
+book and the colors file kept their old names.
+
+.PP
+To keep your settings, your taglines, your address book and your mail, copy
+the old configuration file to the new name. On Unix:
+
+.EX
+cp ~/.mmailrc ~/.ncmailrc
+.EE
+
+.PP
+On DOS, OS/2 and Windows, copy \fBmmail.rc\fR to \fBncmail.rc\fR in the same
+directory.
+
+.PP
+That is all you need to do. The configuration file holds the full path of
+each of your files, so NoCarrierMail goes on using your old home directory.
+Your taglines and your address book are read as they are. Missing keywords
+are added the first time NoCarrierMail runs, and your own values are kept.
+
+.PP
+If you do not copy the file, NoCarrierMail writes a new configuration file
+and uses a new home directory. Your old files are not deleted, but they are
+not used either. You can copy them into the new directory yourself, or set
+\fBTaglineFile\fR and \fBAddressBook\fR in the new configuration file to point to
+them.
+
 .SH CONFIG FILE
 The config file (see above) is a plain text file with a series of
 values, one per line, in the form "KeyWord: Value". The case of the

@@ -479,6 +479,34 @@ created automatically; the default Unix values are shown here:
   The default directory for saving messages.
 
 
+COMING FROM MULTIMAIL
+---------------------
+
+NoCarrierMail used to be called MultiMail. Only the configuration file was
+renamed. It was `.mmailrc` on Unix, and `mmail.rc` on DOS, OS/2 and Windows.
+The default home directory was `$HOME/mmail`. The tagline file, the address
+book and the colors file kept their old names.
+
+To keep your settings, your taglines, your address book and your mail, copy
+the old configuration file to the new name. On Unix:
+
+    cp ~/.mmailrc ~/.ncmailrc
+
+On DOS, OS/2 and Windows, copy `mmail.rc` to `ncmail.rc` in the same
+directory.
+
+That is all you need to do. The configuration file holds the full path of
+each of your files, so NoCarrierMail goes on using your old home directory.
+Your taglines and your address book are read as they are. Missing keywords
+are added the first time NoCarrierMail runs, and your own values are kept.
+
+If you do not copy the file, NoCarrierMail writes a new configuration file
+and uses a new home directory. Your old files are not deleted, but they are
+not used either. You can copy them into the new directory yourself, or set
+`TaglineFile` and `AddressBook` in the new configuration file to point to
+them.
+
+
 CONFIG FILE
 -----------
 
