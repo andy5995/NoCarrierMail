@@ -343,6 +343,15 @@ while the DOSish versions (DOS, OS/2, and Windows) assume the IBM PC
 set. You can override this via the .ncmailrc option "Charset", or on a
 temporary basis by pressing 'c'.
 
+On Windows, the settings file and the mail directories are kept under
+%APPDATA%\ncmail, because Windows sets no HOME. There are two ways to
+override that. Set the NCMAIL variable to any directory you like, or put
+the settings file next to the program: if ncmail.rc is in the same folder
+as ncmail.exe, that folder is used instead, and everything stays together.
+The second way suits a portable copy on a USB drive, and it means an
+older installation that keeps its settings beside the program carries on
+working after an upgrade.
+
 On a terminal that uses UTF-8, NoCarrierMail draws text as Unicode. The
 IBM line and block characters then appear as themselves. Translation
 still happens first, so "Charset" still matters for message text: if it
