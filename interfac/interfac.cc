@@ -150,7 +150,7 @@ const char *Interface::pkterrmsg(pktstatus pktret)
     return (pktret == PKT_UNFOUND) ?
                "Could not open packet" :
            (pktret == PKT_NOFILES) ?
-               "No files uncompresed - check archiver config" :
+               "No files uncompressed - check archiver config" :
            (pktret == UNCOMP_FAIL) ?
                "Could not uncompress packet" :
                "Packet type not recognized";
