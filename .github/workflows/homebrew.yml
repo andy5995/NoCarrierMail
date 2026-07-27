@@ -1,0 +1,64 @@
+name: Homebrew formula
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+# Only when the formula or the build it drives changes. Nothing here checks the
+# program itself -- macos.yml does that -- so there is no reason to run it for a
+# change under mmail/ or interfac/.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+    paths: &shared_paths
+      - 'packaging/homebrew/**'
+      - 'meson.build'
+      - 'meson_options.txt'
+      - '.github/workflows/homebrew.yml'
+
+  pull_request:
+    branches: [ master ]
+    paths: *shared_paths
+
+jobs:
+  formula:
+    name: audit and install
+    runs-on: macos-latest
+    env:
+      # A plain "brew install --dry-run" will otherwise auto-update Homebrew
+      # itself before doing anything.
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+    steps:
+    - uses: actions/checkout@v7
+
+    # Homebrew refuses a formula that is not in a tap: install by path and by
+    # URL are both rejected, and audit by path is disabled. Dropping the file
+    # into Library/Taps is enough to make it "local/test/ncmail" -- no
+    # brew tap-new needed.
+    - name: Put the formula in a tap
+      run: |
+        TAP="$(brew --repository)/Library/Taps/local/homebrew-test"
+        mkdir -p "$TAP/Formula"
+        cp packaging/homebrew/ncmail.rb "$TAP/Formula/"
+        echo "TAP=$TAP" >> $GITHUB_ENV
+        brew info local/test/ncmail
+
+    # brew style takes a path, but only applies the formula rules inside a
+    # Formula/ directory; run against a loose file it invents offences.
+    - name: Style
+      run: brew style "$TAP/Formula/ncmail.rb"
+
+    # --online additionally checks that the url resolves; it is slower and can
+    # be flaky, so it is left for the manual check before a release.
+    - name: Audit
+      run: brew audit --strict local/test/ncmail
+
+    # Builds the tarball the formula pins, which is what a user would get. Use
+    # "brew install --HEAD local/test/ncmail" by hand to build master instead.
+    - name: Install from source
+      run: brew install --build-from-source local/test/ncmail
+
+    - name: Test
+      run: brew test local/test/ncmail
