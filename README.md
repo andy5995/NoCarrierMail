@@ -75,15 +75,32 @@ PDCurses/XCurses notes. At run time you'll also need an archiver such as
 InfoZip to unpack packets and pack replies.
 
 
-## Installing on macOS
+## Installing with Homebrew
 
 This repository is also a Homebrew tap:
 
     brew tap andy5995/nocarriermail https://github.com/andy5995/NoCarrierMail
+    brew trust andy5995/nocarriermail
     brew install ncmail
 
-Releases also carry a prebuilt tarball for Apple Silicon; see
-`HomebrewFormula/README.md` for the details of the formula.
+Homebrew does not load formulas from a third-party tap until you mark the
+tap as trusted. That is what the `brew trust` line does. Without it, the
+install stops with an "untrusted tap" error.
+
+Homebrew builds NoCarrierMail from source. See `HomebrewFormula/README.md`
+for the details of the formula.
+
+
+## Prebuilt binary for Apple Silicon
+
+Each release also has a ready-made tarball for Apple Silicon Macs. Download
+it from the releases page and unpack it. This does not need Homebrew.
+
+macOS marks files downloaded with a web browser as quarantined. The first run
+may be blocked with a message about an unidentified developer. Remove the mark
+to run it:
+
+    xattr -d com.apple.quarantine ncmail
 
 
 ## Usage

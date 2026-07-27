@@ -9,19 +9,22 @@ needed and the formula is bumped in the same commit as the version.
 
 ## Installing
 
-Because this repository is not named `homebrew-something`, the URL is given once
-when tapping; after that it behaves like any tap:
+The install steps are in the top-level `README.md`.
 
-    brew tap andy5995/nocarriermail https://github.com/andy5995/NoCarrierMail
-    brew install ncmail
+<!-- And only there. They were in both files once, and the copy here fell
+     behind. -->
 
-`brew update` then keeps it current, and `brew upgrade ncmail` moves to a new
-release. Homebrew installs meson, ninja and pkgconf itself, and needs the Xcode
-command line tools for the compiler (it offers to install them).
+Two consequences of the formula living in this repository rather than in a
+`homebrew-` one:
 
-The shorter `brew install user/tap/formula` form, which taps automatically,
-only works for a repository whose name starts with `homebrew-`. That is the one
-thing given up by keeping the formula here.
+- The tap URL has to be given once when tapping, because Homebrew cannot infer
+  it from the repository name. After that it behaves like any tap: `brew update`
+  keeps it current and `brew upgrade ncmail` moves to a new release.
+- The shorter `brew install user/tap/formula` form, which taps automatically,
+  is unavailable. That is the one thing given up by keeping the formula here.
+
+Homebrew installs meson, ninja and pkgconf itself, and needs the Xcode command
+line tools for the compiler (it offers to install them).
 
 ## There is no way to install a formula outside a tap
 
