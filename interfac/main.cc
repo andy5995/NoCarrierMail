@@ -141,6 +141,8 @@ int main(int argc, char **argv)
     if ((2 == argc) && ('-' == argv[1][0]) && loneOption(argv[1]))
         return EXIT_SUCCESS;
 
+    mm.res.init();
+
     while ((argc > 2) && ('-' == argv[1][0])) {
         char *resName = argv[1] + 1;
         char *resValue = argv[2];

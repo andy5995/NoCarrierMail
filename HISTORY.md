@@ -4,22 +4,37 @@ Revision History
 (in-progress)
 -------------
 
+- Windows: keep your settings and mail under %APPDATA%\ncmail. Windows sets no
+  HOME, so the reader used the directory it was started from -- for the Start
+  Menu shortcut that is the install folder, which is not writable, and the
+  settings file could not be saved ("Error writing config file"). (#38)
+- Windows: a settings file next to the program takes precedence over
+  %APPDATA%\ncmail, so a portable copy keeps working, and so does an older
+  installation that has always kept ncmail.rc beside ncmail.exe.
+- Draw text as Unicode on macOS and the BSDs too, where the wide curses calls
+  were being compiled out. The build now asks curses for them, and the macOS
+  build uses a Homebrew ncurses if one is installed.
+- Release a macOS build for Apple Silicon: a tarball holding the program, the
+  man page and the example color schemes. See README-macos.txt inside it.
+- A Homebrew formula, in packaging/homebrew, for installing on macOS.
 - The AppImage now bundles its own C library and terminfo database, so it runs
   on any Linux distribution, including musl-based and very old ones.
-- New icon. The old one still showed the MultiMail name.
-- The Windows installer is about 1 MB smaller.
 - Quote names taken from a packet before passing them to the archiver. A packet
   could name itself in a way that ran a command.
 - Limit the length of the text fields read from an OPX packet header. A crafted
   packet could overflow a buffer.
 - Read the door name and version from a QWK DOOR.ID without assuming the lines
   are well formed. A long or malformed line could overflow a buffer or crash.
-- Keep long names and addresses inside the window when showing a letter header
-  or the address book, and when writing a header to a file.
+- Update .ncmailrc and the colors file in place: your own comments and the order
+  of the lines are kept, and the file is only touched when its keywords differ
+  from the program's, so a new version alone no longer rewrites it and prompts
+  you. (#34)
+- New "--version" and "--help" options. --version also reports the curses
+  library, and whether the build and your terminal can show Unicode characters,
+  which is worth including in a bug report.
 - Draw ANSI art with the real block and line characters on a UTF-8 terminal,
   instead of the substitutes used when a terminal has no such characters. The
   character set setting no longer changes how the art looks there.
-- Draw the shadow under a popup correctly when the text behind it is not ASCII.
 - Hold ANSI art to 80 columns and centre it. On a wider terminal each row used
   to run on into the next one, which sheared the picture.
 - Fix a crash when the terminal was resized while the ANSI animator was
@@ -28,31 +43,16 @@ Revision History
   viewing animated ANSI does the job better.
 - Show the last line of the ANSI viewer's help screen. "Q - Quit ANSI viewer"
   was cut off.
-- Update .ncmailrc and the colors file in place: your own comments and the order
-  of the lines are kept, and the file is only touched when its keywords differ
-  from the program's, so a new version alone no longer rewrites it and prompts
-  you. (#34)
-- Windows: a settings file next to the program takes precedence over
-  %APPDATA%\ncmail, so a portable copy keeps working, and so does an older
-  installation that has always kept ncmail.rc beside ncmail.exe.
-- Windows: keep your settings and mail under %APPDATA%\ncmail. Windows sets no
-  HOME, so the reader used the directory it was started from -- for the Start
-  Menu shortcut that is the install folder, which is not writable, and the
-  settings file could not be saved ("Error writing config file"). (#38)
-- New "--version" and "--help" options. --version also reports the curses
-  library, and whether the build and your terminal can show Unicode characters,
-  which is worth including in a bug report.
-- A Homebrew formula, in packaging/homebrew, for installing on macOS.
-- Release a macOS build for Apple Silicon: a tarball holding the program, the
-  man page and the example color schemes. See README-macos.txt inside it.
+- Keep long names and addresses inside the window when showing a letter header
+  or the address book, and when writing a header to a file.
+- Draw the shadow under a popup correctly when the text behind it is not ASCII.
 - Free the prompt window that "T" (take tagline) opens in the letter window.
   Each use leaked about 6 KB.
-- Draw text as Unicode on macOS and the BSDs too, where the wide curses calls
-  were being compiled out. The build now asks curses for them, and the macOS
-  build uses a Homebrew ncurses if one is installed.
 - The "Version" line in .ncmailrc and the colors file is no longer written or
   read. Nothing used it once the check above stopped depending on it. An
   existing line is ignored, and commented out if the file is ever updated.
+- New icon. The old one still showed the MultiMail name.
+- The Windows installer is about 1 MB smaller.
 
 
 0.53 - 2026-07-25

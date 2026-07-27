@@ -64,6 +64,7 @@ class resource : public baseconfig
 
     char *resourceData[noOfStrings];
     int resourceInt[(int)noOfResources - (int)noOfStrings];
+    bool pathsReady;
 
     void homeInit();
     void mmEachInit(int, const char *);
@@ -77,6 +78,7 @@ class resource : public baseconfig
  public:
     resource();
     ~resource();
+    void init();
     const char *get(int) const;
     int getInt(int) const;
     void set(int, const char *);

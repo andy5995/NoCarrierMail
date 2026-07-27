@@ -471,10 +471,20 @@ resource::resource()
     }
     set(outCharset, "iso-8859-1");
 
+    pathsReady = false;
+
     initinit();
     homeInit();
     mmHomeInit();
+}
 
+/* Everything here writes to the disk or asks the user something, so it is kept
+   out of the constructor: this object is a global, so the constructor runs
+   before main() has had a chance to see --version or --help, and those must not
+   create a configuration file or stop at a prompt. */
+
+void resource::init()
+{
     char *configFileName = fullpath(resourceData[homeDir], RCNAME);
 
     if (parseConfig(configFileName)) {
@@ -514,10 +524,18 @@ resource::resource()
         fatalError("Unable to create temp directory");
     subPath(WorkDir, "work");
     subPath(UpWorkDir, "upwork");
+
+    pathsReady = true;
 }
 
 resource::~resource()
 {
+    if (!pathsReady) {
+        for (int c = 0; c < noOfStrings; c++)
+            delete[] resourceData[c];
+        return;
+    }
+
     clearDirectory(resourceData[WorkDir]);
     clearDirectory(resourceData[UpWorkDir]);
     mychdir(resourceData[BaseDir]);
