@@ -27,11 +27,14 @@ jobs:
           - os: freebsd
             version: '15.0'
             install: sudo pkg install -y git meson ncurses ninja pkgconf
+          # No ncurses package: OpenBSD's base curses already has the wide
+          # API. Its Makefile builds with -D_XOPEN_SOURCE_EXTENDED and installs
+          # both ncurses.pc and ncursesw.pc, and the wide-curses probe finds it.
           - os: openbsd
             version: '7.9'
             install: |
               echo https://cdn.openbsd.org/pub/OpenBSD | sudo tee /etc/installurl
-              sudo pkg_add git meson ncurses ninja pkgconf
+              sudo pkg_add git meson ninja pkgconf
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v7
