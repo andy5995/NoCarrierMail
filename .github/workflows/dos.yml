@@ -71,6 +71,24 @@ jobs:
           *) echo "ERROR: not a DOS executable"; exit 1 ;;
         esac
 
+    - name: Smoke test under dosemu2
+      timeout-minutes: 5
+      run: |
+        mkdir -p dosemu-home/drive_c
+        cp ncmail.exe dosemu-home/drive_c/NCMAIL.EXE
+        chmod -R a+rwX dosemu-home
+        # -ks reads the keyboard from stdin, so stdin has to be fed or the run
+        # never ends; the "n" also answers any first-run prompt, so a fresh
+        # home cannot stall here. dosemu exits 0 even when the DOS command
+        # fails, so the check has to look for the program's own output.
+        printf 'n\n' | docker run --rm -i \
+          -v "$PWD/dosemu-home:/home/dosuser/.dosemu" \
+          ghcr.io/theimpossibleastronaut/dosemu2-container:release \
+          -td -ks -E "NCMAIL.EXE --version" | tee dosemu.out
+        grep -qE 'NoCarrierMail [0-9]+\.[0-9]+' dosemu.out
+        grep -q PDCurses dosemu.out
+        echo "OK: ran under DOS"
+
     - name: Stage artifact
       run: |
         if [[ -z "${VERSION}" ]]; then

@@ -170,6 +170,40 @@ does not appear in the older build either, say so instead of reporting the chang
 as a fix: rendering faults often depend on the terminal, the curses version and
 timing.
 
+## Testing the DOS build
+
+CI compiles the 16-bit DOS build but never runs it, so nothing catches a fault
+that only appears at runtime there. Run it by hand from time to time, and before
+a release.
+
+`dosemu2 -t` uses a text-mode terminal, so the tmux harness above works on it
+unchanged. DOSBox and its forks draw into an SDL window instead and cannot be
+scraped this way.
+
+The quickest check needs no packet and no keystrokes:
+
+```
+dosemu -t -ks -E "NCMAIL --version"
+```
+
+It prints the program version and the PDCurses version, which is enough to prove
+the binary loads and runs.
+
+For a full pass, copy `NCMAIL.EXE` and a packet into a directory under
+`~/.dosemu/drive_c` and drive it with tmux. Two things to know first:
+
+- **The DOS build needs an external unzip program.** The default command is
+  `pkunzip -# -o`. Without one, opening a packet fails with "check archiver
+  config" and nothing else in the program can be reached. PKZIP 2.04g is a
+  self-extracting DOS executable; extract it into its own directory and add that
+  directory to the DOS `PATH`.
+- **On DOS the settings file is written next to the program**, not in a home
+  directory, so each test directory gets its own `ncmail.rc`.
+
+A pass is complete when the packet list, the area list, the letter list, a
+message body and the ANSI viewer have all been seen, and quitting removes the
+`work*` directory it created.
+
 ## Afterwards
 
 Kill every tmux session you started, and remove temporary worktrees with

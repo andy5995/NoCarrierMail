@@ -39,6 +39,10 @@ meson setup builddir --buildtype=release -Dstrip=true   # stripped release
 - CI (`.github/workflows/`) builds on Linux, macOS, MSYS2 (ncurses), MSVC
   (PDCurses via vcpkg), and **16-bit DOS** (`dos.yml`, OpenWatcom). Beyond
   `meson test`, the cross-platform bar is still "compiles clean everywhere."
+- **Nothing in CI *runs* the DOS binary** — `dos.yml` only compiles it. Test it by
+  hand in dosemu2 periodically, and before a release; the recipe (including the
+  external-unzip requirement, which blocks opening a packet without it) is in
+  `docs/driving-the-ui-headlessly.md`.
 - **Release assets come from three independent workflows** — `appimage.yml`,
   `dos.yml` and `windows-installer.yml` — each attaching its own artifact to
   the release. Because they run concurrently there is no point at which CI can
@@ -205,4 +209,5 @@ external (de)compressor and editor), `packet.cc` (UI side of opening packets).
   lines you're touching already use; never brace a single statement or move an
   `else` just to make an edit fit.
 - Changes affecting users get a one-line entry; `HISTORY.md` is the running
-  changelog.
+  changelog. Order the in-progress section by how interesting or important each
+  change is to users, most important first — not by the order things were done.
