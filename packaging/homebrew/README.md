@@ -12,11 +12,48 @@ With that in place, users run:
 
     brew install andy5995/tap/ncmail
 
-To test a change before tagging a release, without touching the tap:
+Homebrew maps `andy5995/tap` to `github.com/andy5995/homebrew-tap` — the
+`homebrew-` prefix on the repo name is required and is not typed by the user.
 
-    brew install --build-from-source --HEAD ./packaging/homebrew/ncmail.rb
-    brew test ncmail
-    brew audit --strict --new ncmail     # what homebrew-core would check
+## There is no way to install this without a tap
+
+Homebrew 6 rejects a formula that is not in a tap. Both of these fail, verified
+against 6.0.12:
+
+    brew install ./packaging/homebrew/ncmail.rb
+    # Error: Homebrew requires formulae to be in a tap, rejecting: ...
+
+    brew install https://raw.githubusercontent.com/.../ncmail.rb
+    # Warning: No available formula or cask with the name "https://..."
+    # (it reads the URL as a formula name)
+
+So the tap repo is not optional. `brew test` also wants an *installed* formula,
+and `brew audit` by path is disabled outright ("Use `brew audit [name ...]`").
+Everything goes through a tap and a formula name.
+
+Homebrew installs meson, ninja and pkgconf itself, and needs the Xcode command
+line tools for the compiler (it offers to install them).
+
+## Checking a change locally
+
+Make a local tap once, then work by name:
+
+    brew tap-new andy5995/tap
+    cp packaging/homebrew/ncmail.rb "$(brew --repository andy5995/tap)/Formula/"
+    brew install --build-from-source andy5995/tap/ncmail
+    brew test andy5995/tap/ncmail
+    brew audit --strict andy5995/tap/ncmail
+
+`brew style` is the exception that does take a path — but **only inside a tap
+layout**. Run against a loose file it applies generic Ruby cops instead of the
+formula ones and invents six offences (Sorbet sigils, frozen-string comment,
+class documentation, argument alignment). In a `*/Formula/*.rb` path this
+formula reports no offences:
+
+    brew style "$(brew --repository andy5995/tap)/Formula/ncmail.rb"
+
+Once the real tap exists on GitHub, use `brew tap andy5995/tap` instead of
+`tap-new`, and edit the formula in that clone.
 
 ## At each release
 
