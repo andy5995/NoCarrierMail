@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+# The comment above, and the argument alignment in install, are here because this
+# file lives in HomebrewFormula/ rather than Formula/ -- Homebrew's formula
+# rubocop rules only apply to the latter, so the generic Ruby cops run and
+# brew audit --strict fails without them. No formula in homebrew-core carries
+# either (0 of 8521 on 2026-07-26); do not "tidy" them away.
+
 class Ncmail < Formula
   desc "Offline mail packet reader for Blue Wave, QWK, OMEN, SOUP and OPX"
   homepage "https://github.com/andy5995/NoCarrierMail"
