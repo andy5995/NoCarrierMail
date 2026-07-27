@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Ncmail < Formula
   desc "Offline mail packet reader for Blue Wave, QWK, OMEN, SOUP and OPX"
   homepage "https://github.com/andy5995/NoCarrierMail"
@@ -18,8 +20,8 @@ class Ncmail < Formula
   # people building by hand.
   def install
     system "meson", "setup", "build", *std_meson_args,
-                                      "-Dtests=false",
-                                      "-Dpkg_config_path="
+           "-Dtests=false",
+           "-Dpkg_config_path="
     system "meson", "compile", "-C", "build", "--verbose"
     system "meson", "install", "-C", "build"
   end

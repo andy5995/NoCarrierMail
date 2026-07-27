@@ -75,6 +75,17 @@ PDCurses/XCurses notes. At run time you'll also need an archiver such as
 InfoZip to unpack packets and pack replies.
 
 
+## Installing on macOS
+
+This repository is also a Homebrew tap:
+
+    brew tap andy5995/nocarriermail https://github.com/andy5995/NoCarrierMail
+    brew install ncmail
+
+Releases also carry a prebuilt tarball for Apple Silicon; see
+`HomebrewFormula/README.md` for the details of the formula.
+
+
 ## Usage
 
 See the [man page][MANUAL] for usage, and edit `~/.ncmailrc` (or `ncmail.rc`

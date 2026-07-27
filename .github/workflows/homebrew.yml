@@ -12,7 +12,7 @@ on:
   push:
     branches: [ master ]
     paths: &shared_paths
-      - 'packaging/homebrew/**'
+      - 'HomebrewFormula/**'
       - 'meson.build'
       - 'meson_options.txt'
       - '.github/workflows/homebrew.yml'
@@ -36,19 +36,21 @@ jobs:
     # Homebrew refuses a formula that is not in a tap: install by path and by
     # URL are both rejected, and audit by path is disabled. Dropping the file
     # into Library/Taps is enough to make it "local/test/ncmail" -- no
-    # brew tap-new needed.
+    # brew tap-new needed. HomebrewFormula/ mirrors the layout in this repo,
+    # which is itself a tap, so this checks the discovery rule we rely on.
     - name: Put the formula in a tap
       run: |
         TAP="$(brew --repository)/Library/Taps/local/homebrew-test"
-        mkdir -p "$TAP/Formula"
-        cp packaging/homebrew/ncmail.rb "$TAP/Formula/"
+        mkdir -p "$TAP/HomebrewFormula"
+        cp HomebrewFormula/ncmail.rb "$TAP/HomebrewFormula/"
         echo "TAP=$TAP" >> $GITHUB_ENV
         brew info local/test/ncmail
 
-    # brew style takes a path, but only applies the formula rules inside a
-    # Formula/ directory; run against a loose file it invents offences.
+    # brew style takes a path, but Homebrew's formula rules are keyed to a
+    # directory named exactly Formula, so under HomebrewFormula/ the generic Ruby
+    # cops apply. The formula is written to satisfy both sets.
     - name: Style
-      run: brew style "$TAP/Formula/ncmail.rb"
+      run: brew style "$TAP/HomebrewFormula/ncmail.rb"
 
     # --online additionally checks that the url resolves; it is slower and can
     # be flaky, so it is left for the manual check before a release.
