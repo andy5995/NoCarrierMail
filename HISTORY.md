@@ -32,6 +32,9 @@ Revision History
   of the lines are kept, and the file is only touched when its keywords differ
   from the program's, so a new version alone no longer rewrites it and prompts
   you. (#34)
+- Windows: a settings file next to the program takes precedence over
+  %APPDATA%\ncmail, so a portable copy keeps working, and so does an older
+  installation that has always kept ncmail.rc beside ncmail.exe.
 - Windows: keep your settings and mail under %APPDATA%\ncmail. Windows sets no
   HOME, so the reader used the directory it was started from -- for the Start
   Menu shortcut that is the install folder, which is not writable, and the

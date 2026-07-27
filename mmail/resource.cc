@@ -700,16 +700,40 @@ void resource::homeInit()
         if (envhome)
             usingHOME = true;
         else {
+            envhome = error.getOrigDir();
 #ifdef HAS_APPDATA
-            /* Windows sets no HOME, and the fallback below is the directory the
-               program was started from. For a Start Menu shortcut that is the
-               install directory under Program Files, which is not writable, so
-               the configuration file could not be written at all. */
+            /* Windows sets no HOME, and the directory the program was started
+               from is where the settings used to go. Launched from the Start
+               Menu shortcut that is the install directory under Program Files,
+               which is not writable, so the file could not be written at all.
+               %APPDATA% is used instead.
 
-            envhome = appDataHome();
-            if (!envhome)
+               Except when a settings file is already sitting beside the
+               program, which stays in charge. That covers two things at once,
+               and is meant to be permanent rather than a shim:
+
+               - a portable installation, where the whole directory is meant to
+                 be self-contained and movable;
+               - upgrades from before 0.54. MultiMail shipped its Windows builds
+                 as a plain archive, so a long-time user has ncmail.rc (or a
+                 renamed mmail.rc) where they unpacked it, and moving to
+                 %APPDATA% would silently lose their packet directory, editor
+                 and colours. */
+
+            char *oldrc = fullpath(envhome, RCNAME);
+            FILE *fp = fopen(oldrc, "rt");
+
+            delete[] oldrc;
+
+            if (fp)
+                fclose(fp);
+            else {
+                const char *appdata = appDataHome();
+
+                if (appdata)
+                    envhome = appdata;
+            }
 #endif
-                envhome = error.getOrigDir();
         }
     }
 
