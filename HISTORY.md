@@ -32,6 +32,10 @@ Revision History
   of the lines are kept, and the file is only touched when its keywords differ
   from the program's, so a new version alone no longer rewrites it and prompts
   you. (#34)
+- New "--version" and "--help" options. --version also reports the curses
+  library, and whether the build and your terminal can show Unicode characters,
+  which is worth including in a bug report.
+- A Homebrew formula, in packaging/homebrew, for installing on macOS.
 - Release a macOS build for Apple Silicon: a tarball holding the program, the
   man page and the example color schemes. See README-macos.txt inside it.
 - Free the prompt window that "T" (take tagline) opens in the letter window.

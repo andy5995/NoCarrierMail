@@ -13,6 +13,8 @@ SYNOPSIS
 
 `ncmail` [`-option1 value`] [`-option2 value`] [...] [*file1*] [*file2*] [...]
 
+`ncmail` `--help` | `--version`
+
 
 DESCRIPTION
 -----------
@@ -129,6 +131,11 @@ which include spaces must be quoted. All options must be specified
 before any packet names or directories on the line. Finally, options
 which take a filename or path should always include the full path. (This
 is not, however, necessary for packet names.)
+
+Two options are given on their own, and make the program print something
+and stop. `--version`, or `-V`, shows the version, the curses library in
+use, and whether this build and your terminal can show Unicode
+characters. `--help`, or `-h`, shows a short usage message.
 
 Packet names may be specified on the command line, bypassing the packet
 menu. If multiple packets are named, they'll be opened sequentially. If

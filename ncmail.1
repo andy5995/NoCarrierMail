@@ -6,6 +6,9 @@ ncmail \- offline mail reader for Blue Wave, QWK, OMEN, SOUP and OPX packets
 .SH SYNOPSIS
 \fBncmail\fR [\fB-option1 value\fR] [\fB-option2 value\fR] [...] [\fIfile1\fP] [\fIfile2\fP] [...]
 
+.PP
+\fBncmail\fR \fB--help\fR | \fB--version\fR
+
 .SH DESCRIPTION
 NoCarrierMail is an offline mail packet reader, supporting the Blue Wave,
 QWK, OMEN, SOUP and OPX formats. It uses a simple curses-based
@@ -138,6 +141,12 @@ which include spaces must be quoted. All options must be specified
 before any packet names or directories on the line. Finally, options
 which take a filename or path should always include the full path. (This
 is not, however, necessary for packet names.)
+
+.PP
+Two options are given on their own, and make the program print something
+and stop. \fB--version\fR, or \fB-V\fR, shows the version, the curses library in
+use, and whether this build and your terminal can show Unicode
+characters. \fB--help\fR, or \fB-h\fR, shows a short usage message.
 
 .PP
 Packet names may be specified on the command line, bypassing the packet
