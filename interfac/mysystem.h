@@ -24,6 +24,9 @@ int mychdir(const char *);
 int mymkdir(const char *);
 void myrmdir(const char *);
 char *mygetcwd();
+#ifdef HAS_APPDATA
+const char *appDataHome();
+#endif
 const char *sysname();
 bool myopendir(const char *);
 const char *myreaddir(mystat &);

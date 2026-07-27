@@ -699,8 +699,18 @@ void resource::homeInit()
         envhome = getenv("HOME");
         if (envhome)
             usingHOME = true;
-        else
-            envhome = error.getOrigDir();
+        else {
+#ifdef HAS_APPDATA
+            /* Windows sets no HOME, and the fallback below is the directory the
+               program was started from. For a Start Menu shortcut that is the
+               install directory under Program Files, which is not writable, so
+               the configuration file could not be written at all. */
+
+            envhome = appDataHome();
+            if (!envhome)
+#endif
+                envhome = error.getOrigDir();
+        }
     }
 
     set_noalloc(homeDir, canonize(fixPath(envhome)));
