@@ -60,6 +60,16 @@
 # define HAS_UNAME
 #endif
 
+/* 32/64-bit Windows has no HOME, so per-user files go under %APPDATA%, which
+   needs the shell folder API. Deliberately not 16-bit DOS or OS/2, which have
+   neither the API nor a per-user profile. MinGW, MSVC and 32-bit Borland all
+   define _WIN32; __WIN32__ is listed as well since the rest of this file keys
+   off it. */
+
+#if defined(_WIN32) || defined(__WIN32__)
+# define HAS_APPDATA
+#endif
+
 /* MS-DOS and DOS-like systems. */
 
 #if defined(__MSDOS__) || defined(__WIN32__) || defined(__OS2__)

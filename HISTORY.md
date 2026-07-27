@@ -32,6 +32,10 @@ Revision History
   of the lines are kept, and the file is only touched when its keywords differ
   from the program's, so a new version alone no longer rewrites it and prompts
   you. (#34)
+- Windows: keep your settings and mail under %APPDATA%\ncmail. Windows sets no
+  HOME, so the reader used the directory it was started from -- for the Start
+  Menu shortcut that is the install folder, which is not writable, and the
+  settings file could not be saved ("Error writing config file"). (#38)
 - New "--version" and "--help" options. --version also reports the curses
   library, and whether the build and your terminal can show Unicode characters,
   which is worth including in a bug report.

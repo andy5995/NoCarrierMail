@@ -214,6 +214,48 @@ char *mygetcwd()
     return strdupplus(result ? pathname : ".");
 }
 
+#ifdef HAS_APPDATA
+/* Where per-user files go on Windows, which sets no HOME: %APPDATA%\\ncmail,
+   created if it is not there yet. Returns 0 if APPDATA is unset.
+
+   The shell folder API would answer this too -- canfigger uses
+   SHGetFolderPath(CSIDL_APPDATA) -- but that needs shell32 adding to three of
+   this project's build files, including two Win32 targets nothing builds, and
+   the shell sets APPDATA from the same place for a program a user launched. */
+
+const char *appDataHome()
+{
+    static char path[512];
+
+    if (!path[0]) {
+        const char *base = getenv("APPDATA");
+
+        if (!base || !*base)
+            return 0;
+
+        size_t len = strlen(base);
+
+        if ((len + sizeof "\\ncmail") > sizeof path)
+            return 0;
+
+        strcpy(path, base);
+
+        if (path[len - 1] != '\\')
+            path[len++] = '\\';
+
+        strcpy(path + len, "ncmail");
+
+        /* Created here rather than in verifyPaths(): the configuration file is
+           written before that runs, so on a first run there would be no
+           directory to write it into. */
+
+        mymkdir(path);
+    }
+
+    return path;
+}
+#endif
+
 // system name -- results of uname()
 const char *sysname()
 {
