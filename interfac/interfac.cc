@@ -22,7 +22,7 @@ void Interface::init()
     signal(SIGWINCH, sigwinchHandler);
 # endif
 #endif
-    commandline = abortNow = dontSetAsRead = false;
+    commandline = abortNow = dontSetAsRead = reportUp = false;
     unsaved_reply = any_read = false;
     state = nostate;
     width_min = MINWIDTH;
@@ -892,6 +892,10 @@ void Interface::KeyHandle()  // Main loop
 #ifdef KEY_RESIZE
         resized = (KEY_RESIZE == Key);
 #endif
+        if (reportUp && (ERR != Key)) {
+            reportUp = false;
+            redraw();
+        }
         if (((state == letter_help) || (state == ansi_help))
 #ifdef KEY_RESIZE
             && !resized
@@ -961,6 +965,10 @@ void Interface::KeyHandle()  // Main loop
                 redraw();
                 ReportWindow(isoConsole ? "Charset: Latin-1" :
                              "Charset: CP437");
+                /* Nothing repaints over this one, unlike the popups that
+                   sit in front of a long operation, so the next keypress
+                   has to erase it. */
+                reportUp = true;
                 break;
             case 'O':
                 switch (state) {

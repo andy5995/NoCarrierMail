@@ -51,6 +51,9 @@ Revision History
 - The "Version" line in .ncmailrc and the colors file is no longer written or
   read. Nothing used it once the check above stopped depending on it. An
   existing line is ignored, and commented out if the file is ever updated.
+- The "Charset:" popup shown by "C" now disappears on the next keypress.
+  It used to stay on the screen and be partly overwritten as you moved
+  through the list.
 - New icon. The old one still showed the MultiMail name.
 - The Windows installer is about 1 MB smaller.
 - The DOS download is now a zip file with a short name, like ncm054.zip. It

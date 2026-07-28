@@ -101,10 +101,11 @@ Capture the pane, read where the cursor actually is, then send the next key.
 - **A key that does nothing under `send-keys` is not evidence of a bug.** The
   charset toggle `C` produced no visible change for me on any screen and I was
   ready to call it broken; it works every time by hand. Check a suspect key
-  interactively before concluding anything. Note that its popup is not
-  transient — nothing erases a popup until another window draws over it, so a
-  missing popup means the keystroke probably never arrived, not that it came and
-  went. Confirm delivery with a key whose effect is lasting and visible.
+  interactively before concluding anything. Its popup now clears on the next
+  keypress, so capture the pane before sending anything else; a popup that is
+  already gone may mean you sent one key too many rather than that the toggle
+  failed. Other popups are not transient — nothing erases them until another
+  window draws over them.
 
 For a small change to an already-written reply, editing the `.REP` directly can
 beat driving the UI: it is a zip holding one `<BBSID>.MSG` file in plain QWK
