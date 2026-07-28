@@ -53,6 +53,10 @@ Revision History
   existing line is ignored, and commented out if the file is ever updated.
 - New icon. The old one still showed the MultiMail name.
 - The Windows installer is about 1 MB smaller.
+- The DOS download is now a zip file with a short name, like ncm054.zip. It
+  holds NCMAIL.EXE and the documentation as text files. Every name inside fits
+  the 8.3 rule, so you can copy it to a DOS computer and use it as it is. The
+  old download had a long name that DOS could not keep.
 
 
 0.53 - 2026-07-25

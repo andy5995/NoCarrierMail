@@ -100,8 +100,21 @@ jobs:
           fi
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
         fi
-        OUT="NoCarrierMail-${VERSION}-dos.exe"
-        cp ncmail.exe "$OUT"
+        # 8.3 all the way down: the archive, the directory it extracts to, and
+        # every file inside have to survive being copied onto a FAT volume.
+        if [[ "${VERSION}" == "snapshot" ]]; then
+          BASE="ncmsnap"
+        else
+          BASE="ncm${VERSION//./}"
+        fi
+        mkdir "$BASE"
+        cp ncmail.exe "$BASE/NCMAIL.EXE"
+        # DOS TYPE and the DOS-era editors want CRLF; the repo files are LF.
+        for doc in README MANUAL INSTALL HISTORY LEGAL; do
+          sed 's/$/\r/' "${doc}.md" > "$BASE/${doc}.TXT"
+        done
+        OUT="${BASE}.zip"
+        zip -r "$OUT" "$BASE"
         sha256sum "$OUT" > "$OUT.sha256sum"
         echo "OUT=${OUT}" >> "$GITHUB_ENV"
 

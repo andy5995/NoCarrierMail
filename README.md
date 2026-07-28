@@ -25,6 +25,7 @@ Downloads, help, and where to take part:
 - [Source code][github] -- the project on GitHub
 - [Latest release][releases] -- prebuilt binaries for the newest version
 - [Snapshot builds][snapshot] -- built from the latest code, for testing
+- The DOS download, `ncm???.zip`, holds the 16-bit DOS program and the docs
 - [Discussions][discussions] -- questions and general talk
 - [Issue tracker][issues] -- bugs and feature requests
 
