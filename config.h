@@ -2,7 +2,7 @@
 #define STR(x) STRingize(x)
 
 #define MM_MAJOR 0
-#define MM_MINOR 54
+#define MM_MINOR 55
 #define MM_YEAR "2026"
 
 #define MM_NAME "NoCarrierMail"
