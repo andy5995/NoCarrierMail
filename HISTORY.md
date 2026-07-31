@@ -1,8 +1,8 @@
 Revision History
 ================
 
-(in-progress)
--------------
+0.54 - 2026-07-31
+-----------------
 
 - Windows: keep your settings and mail under %APPDATA%\ncmail. Windows sets no
   HOME, so the reader used the directory it was started from -- for the Start
@@ -11,14 +11,6 @@ Revision History
 - Windows: a settings file next to the program takes precedence over
   %APPDATA%\ncmail, so a portable copy keeps working, and so does an older
   installation that has always kept ncmail.rc beside ncmail.exe.
-- Draw text as Unicode on macOS and the BSDs too, where the wide curses calls
-  were being compiled out. The build now asks curses for them, and the macOS
-  build uses a Homebrew ncurses if one is installed.
-- Release a macOS build for Apple Silicon: a tarball holding the program, the
-  man page and the example color schemes. See README-macos.txt inside it.
-- A Homebrew formula, in packaging/homebrew, for installing on macOS.
-- The AppImage now bundles its own C library and terminfo database, so it runs
-  on any Linux distribution, including musl-based and very old ones.
 - Quote names taken from a packet before passing them to the archiver. A packet
   could name itself in a way that ran a command.
 - Limit the length of the text fields read from an OPX packet header. A crafted
@@ -29,6 +21,9 @@ Revision History
   of the lines are kept, and the file is only touched when its keywords differ
   from the program's, so a new version alone no longer rewrites it and prompts
   you. (#34)
+- Draw text as Unicode on macOS and the BSDs too, where the wide curses calls
+  were being compiled out. The build now asks curses for them, and the macOS
+  build uses a Homebrew ncurses if one is installed.
 - New "--version" and "--help" options. --version also reports the curses
   library, and whether the build and your terminal can show Unicode characters,
   which is worth including in a bug report.
@@ -41,25 +36,30 @@ Revision History
   running. The animator ignored the resize instead of passing it on.
 - Remove the animation feature from the ANSI viewer. A program written for
   viewing animated ANSI does the job better.
-- Show the last line of the ANSI viewer's help screen. "Q - Quit ANSI viewer"
-  was cut off.
+- Release a macOS build for Apple Silicon: a tarball holding the program, the
+  man page and the example color schemes. See README-macos.txt inside it.
+- A Homebrew formula, in packaging/homebrew, for installing on macOS.
+- The AppImage now bundles its own C library and terminfo database, so it runs
+  on any Linux distribution, including musl-based and very old ones.
+- The DOS download is now a zip file with a short name, like ncm054.zip. It
+  holds NCMAIL.EXE and the documentation as text files. Every name inside fits
+  the 8.3 rule, so you can copy it to a DOS computer and use it as it is. The
+  old download had a long name that DOS could not keep.
+- The Windows installer is about 1 MB smaller.
+- New icon. The old one still showed the MultiMail name.
 - Keep long names and addresses inside the window when showing a letter header
   or the address book, and when writing a header to a file.
+- The "Charset:" popup shown by "C" now disappears on the next keypress.
+  It used to stay on the screen and be partly overwritten as you moved
+  through the list.
+- Show the last line of the ANSI viewer's help screen. "Q - Quit ANSI viewer"
+  was cut off.
 - Draw the shadow under a popup correctly when the text behind it is not ASCII.
 - Free the prompt window that "T" (take tagline) opens in the letter window.
   Each use leaked about 6 KB.
 - The "Version" line in .ncmailrc and the colors file is no longer written or
   read. Nothing used it once the check above stopped depending on it. An
   existing line is ignored, and commented out if the file is ever updated.
-- The "Charset:" popup shown by "C" now disappears on the next keypress.
-  It used to stay on the screen and be partly overwritten as you moved
-  through the list.
-- New icon. The old one still showed the MultiMail name.
-- The Windows installer is about 1 MB smaller.
-- The DOS download is now a zip file with a short name, like ncm054.zip. It
-  holds NCMAIL.EXE and the documentation as text files. Every name inside fits
-  the 8.3 rule, so you can copy it to a DOS computer and use it as it is. The
-  old download had a long name that DOS could not keep.
 
 
 0.53 - 2026-07-25
