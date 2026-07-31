@@ -9,8 +9,8 @@
 class Ncmail < Formula
   desc "Offline mail packet reader for Blue Wave, QWK, OMEN, SOUP and OPX"
   homepage "https://github.com/andy5995/NoCarrierMail"
-  url "https://github.com/andy5995/NoCarrierMail/archive/refs/tags/v0.53.tar.gz"
-  sha256 "114d28cce07b6860f18fe96edfd0669e2d1f27e2c0f1c63dd9ef6a17db851082"
+  url "https://github.com/andy5995/NoCarrierMail/archive/refs/tags/v0.54.tar.gz"
+  sha256 "6672526309d72cb2094e20473c29e0fae19708103041f9064f1b1485d9c36a52"
   license "GPL-3.0-or-later"
   head "https://github.com/andy5995/NoCarrierMail.git", branch: "master"
 
@@ -48,20 +48,17 @@ class Ncmail < Formula
     EOS
   end
 
-  # ncmail is a full-screen curses program with no batch mode, so there is little
-  # to run without a terminal. 0.54 adds --version; when the url above is bumped
-  # to it, this becomes:
-  #
-  #   output = shell_output("#{bin}/ncmail --version")
-  #   assert_match "NoCarrierMail", output
-  #   assert_match version.to_s, output unless build.head?
-  #
-  # HOME has to be set either way: the settings file is read by a global object
-  # before main() runs, so even --version writes ~/.ncmailrc on a first run.
+  # ncmail is a full-screen curses program with no batch mode, so --version is
+  # the only thing that runs without a terminal. HOME is still set because the
+  # settings file is read by a global object before main() runs.
   test do
     ENV["HOME"] = testpath
 
     assert_path_exists bin/"ncmail"
     assert_match "offline mail reader", (man1/"ncmail.1").read
+
+    output = shell_output("#{bin}/ncmail --version")
+    assert_match "NoCarrierMail", output
+    assert_match version.to_s, output unless build.head?
   end
 end
