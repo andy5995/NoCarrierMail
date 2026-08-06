@@ -11,7 +11,7 @@ NoCarrierMail is an offline mail packet reader with a curses-based interface,
 for Unix / Linux, macOS, Windows, and other systems. It reads and replies
 to messages in the Blue Wave, QWK, OMEN, SOUP, and OPX formats.
 
-> NoCarrierMail is a fork of MultiMail, maintained by [andy5995][maintainer].
+> NoCarrierMail is a fork of MultiMail.
 > MultiMail was written by Kolossvary Tamas and Toth Istvan and maintained for
 > many years by [William McBrine][wmcbrine]; see [Credits](#credits). This fork
 > adds a Meson build, a unit-test suite, and a number of fixes and features on
