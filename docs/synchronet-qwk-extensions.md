@@ -1,9 +1,10 @@
 # Synchronet QWK extensions: HEADERS.DAT and VOTING.DAT
 
 Developer reference. Source: <https://wiki.synchro.net/ref:qwk>, cross-checked
-against the Synchronet source (`src/sbbs3/msgtoqwk.cpp`, `pack_qwk.cpp`,
-`qwk.cpp`, `un_rep.cpp`, `postmsg.cpp`, `src/smblib/`) and against real packets
-in `~/mmail/down` (`vert.*`, `kd3net.000`).
+against the [Synchronet](https://www.synchro.net/) source
+(`src/sbbs3/msgtoqwk.cpp`, `pack_qwk.cpp`, `qwk.cpp`, `un_rep.cpp`,
+`postmsg.cpp`, `src/smblib/`) and against real packets in `~/mmail/down`
+(`vert.*`, `kd3net.000`).
 
 Both files are optional additions to a QWK packet. Both are INI-style text,
 CRLF- or LF-terminated. Both key their sections to the **hexadecimal byte

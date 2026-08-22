@@ -89,8 +89,9 @@ meson setup builddir --buildtype=release -Dstrip=true   # stripped release
   by `packaging/make-icons.sh`. Edit the SVG, not the bitmaps. The `.ico` stores
   its 256x256 frame as PNG on purpose — Inno Setup embeds `SetupIconFile` frames
   into setup.exe uncompressed, so a raw frame there costs ~270 KB of installer.
-- Developer notes that outlive a session live in `docs/` — currently the
-  Synchronet QWK extension reference and the headless UI-testing harness.
+- Developer notes that outlive a session live in `docs/` — currently the QWKE
+  format reference, the Synchronet QWK extension reference, and the headless
+  UI-testing harness.
 - `ncmail.1` is committed and current; meson installs it as-is and only
   regenerates from `MANUAL.md` if `go-md2man` is installed (Arch:
   `extra/go-md2man`). Edit `MANUAL.md`, not `ncmail.1`; the `docs.yml` CI job
