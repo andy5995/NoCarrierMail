@@ -423,6 +423,17 @@ bool AreaListWindow::extrakeys(int key)
         ResetActive();
         ui.redraw();
         break;
+    case '8':
+        /* Mark an area as carrying Latin-1 when the packet does not say so.
+           Not 'C': that is the global charset toggle, which Interface takes
+           before any list window sees it. */
+        if (mm.areaList->toggleLatin()) {
+            ui.nonFatalError(mm.areaList->isLatin() ?
+                "Area marked as Latin-1" : "Area set back to the packet's set");
+            Draw();
+        } else
+            ui.nonFatalError("Cannot set a character set for that area");
+        break;
     case 'S':
     case MM_INS:
     case 'U':

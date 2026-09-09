@@ -121,6 +121,14 @@ bool area_header::isLatin() const
     return !(!(type & LATINCHAR));
 }
 
+void area_header::setLatin(bool on)
+{
+    if (on)
+        type |= LATINCHAR;
+    else
+        type &= ~LATINCHAR;
+}
+
 bool area_header::isReadOnly() const
 {
     return !(!(type & READONLY));
@@ -209,6 +217,8 @@ area_list::area_list()
         areaHeader[c] = actDriver->getNextArea();
     }
 
+    loadCharsets();
+
     current = 0;
     almode = mm.res.getInt(AreaMode) - 1;
     relist();
@@ -262,6 +272,121 @@ bool area_list::relist()
     current = c;
 
     return anyfound;
+}
+
+/* Per-area character-set overrides. Some boards export Latin-1 in areas
+   that carry nothing to say so -- a FidoNet echo is neither Internet nor
+   Usenet, so nothing sets LATINCHAR and the text is drawn through the CP437
+   table. The packet cannot be corrected, so the user marks the area and we
+   remember it. One line per override,
+
+       <packet base name> <area tag>
+
+   in mmHomeDir, keyed by the board rather than the packet so that it still
+   applies to next week's packet from the same board. */
+
+static char *charsetFileName()
+{
+    return fullpath(mm.res.get(mmHomeDir), "charsets");
+}
+
+void area_list::loadCharsets()
+{
+    char *fname = charsetFileName();
+    FILE *f = fopen(fname, "rt");
+    delete[] fname;
+
+    if (!f)
+        return;
+
+    const char *base = mm.packet->getBaseName();
+    char line[512];
+
+    while (fgets(line, sizeof line, f)) {
+        char *tag = strchr(line, ' ');
+        if (!tag)
+            continue;
+        *tag++ = '\0';
+
+        char *end = tag + strlen(tag);
+        while ((end > tag) && ((end[-1] == '\n') || (end[-1] == '\r')))
+            *--end = '\0';
+
+        if (strcasecmp(line, base))
+            continue;
+
+        for (int c = 0; c < no; c++)
+            if (!strcasecmp(areaHeader[c]->getName(), tag))
+                areaHeader[c]->setLatin(true);
+    }
+
+    fclose(f);
+}
+
+// Rewrite the file, keeping the lines that belong to other boards
+bool area_list::saveCharsets()
+{
+    char *fname = charsetFileName();
+    const char *base = mm.packet->getBaseName();
+
+    char **keep = 0;
+    int kept = 0;
+
+    FILE *f = fopen(fname, "rt");
+    if (f) {
+        char line[512];
+
+        keep = new char *[512];
+        while ((kept < 512) && fgets(line, sizeof line, f)) {
+            char *sp = strchr(line, ' ');
+            if (sp) {
+                *sp = '\0';
+                bool mine = !strcasecmp(line, base);
+                *sp = ' ';
+                if (mine)
+                    continue;
+            }
+            keep[kept++] = strdupplus(line);
+        }
+        fclose(f);
+    }
+
+    f = fopen(fname, "wt");
+    delete[] fname;
+
+    if (!f) {
+        for (int c = 0; c < kept; c++)
+            delete[] keep[c];
+        delete[] keep;
+        return false;
+    }
+
+    for (int c = 0; c < kept; c++) {
+        fputs(keep[c], f);
+        size_t l = strlen(keep[c]);
+        if (!l || (keep[c][l - 1] != '\n'))
+            fputc('\n', f);
+        delete[] keep[c];
+    }
+    delete[] keep;
+
+    for (int c = 0; c < no; c++)
+        if (!areaHeader[c]->isCollection() && areaHeader[c]->isLatin())
+            fprintf(f, "%s %s\n", base, areaHeader[c]->getName());
+
+    fclose(f);
+    return true;
+}
+
+// Flip the current area between Latin-1 and the packet's own set
+bool area_list::toggleLatin()
+{
+    if (areaHeader[current]->isCollection())
+        return false;
+
+    areaHeader[current]->setLatin(!areaHeader[current]->isLatin());
+
+    return saveCharsets();
 }
 
 int area_list::getRepList()

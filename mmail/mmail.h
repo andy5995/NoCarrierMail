@@ -209,6 +209,7 @@ class area_header
     bool isEmail() const;
     bool isUsenet() const;
     bool isLatin() const;
+    void setLatin(bool);
     bool isReadOnly() const;
     bool hasTo() const;
     bool hasPublic() const;
@@ -234,6 +235,9 @@ class area_list
     ~area_list();
     bool relist();
     int getRepList();
+    void loadCharsets();
+    bool saveCharsets();
+    bool toggleLatin();
     void updatePers();
 
     const char *getShortName() const;

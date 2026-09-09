@@ -97,11 +97,13 @@ void HelpWindow::h_arealist()
     static const char *keys[] = {
         "Q", "Enter", "F2, !",
         "E", "S, Ins", "U, Del",
-        "L", "-", "+"
+        "L", "-", "+",
+        "8"
     }, *func[] = {
         "back to packet list", "select area", "Make reply packet",
         "Enter letter in area", "Subscribe", "Unsubscribe",
-       "all/subscribed/active", "prev non-empty", "next non-empty"
+       "all/subscribed/active", "prev non-empty", "next non-empty",
+        "area is Latin-1"
     };
 
     newHelpMenu(keys, func, ARRAY_SIZE(keys));
