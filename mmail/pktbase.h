@@ -106,6 +106,7 @@ class pktreply : public reply_driver
     void uncompress();
     virtual void getReplies(FILE *) = 0;
     void readRep();
+    virtual void pickInnerName();
     virtual void repFileName() = 0;
     void addUpl(upl_base *);
     virtual void addRep1(FILE *, upl_base *, int) = 0;

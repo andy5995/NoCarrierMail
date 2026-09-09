@@ -754,6 +754,8 @@ void pktreply::readRep()
 {
     upWorkList = new file_list(mm.res.get(UpWorkDir));
 
+    pickInnerName();
+
     FILE *repFile = upWorkList->ftryopen(replyInnerName);
 
     if (repFile) {
@@ -852,6 +854,12 @@ bool pktreply::makeReply()
 }
 
 void pktreply::repFinish()
+{
+}
+
+/* Reply packets whose header file can vary let the driver choose which
+   one is present; the rest always use the name repFileName() built. */
+void pktreply::pickInnerName()
 {
 }
 

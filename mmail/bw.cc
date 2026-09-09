@@ -559,6 +559,14 @@ bwreply::upl_bw::~upl_bw()
 bwreply::bwreply() : pktreply()
 {
     uplHeader = new UPL_HEADER;
+
+    /* The kit says to write the old files only when the door has not set
+       uses_upl_file *and* the packet predates level 3. */
+    INF_HEADER &infoHeader = ((bluewave *) mm.packet)->getInfHeader();
+    oldStyle = !infoHeader.uses_upl_file && (infoHeader.ver < 3);
+
+    netUsed = false;
+    netFile = 0;
 }
 
 bwreply::~bwreply()
@@ -566,17 +574,34 @@ bwreply::~bwreply()
     delete uplHeader;
 }
 
+// <BASENAME>.NET, alongside the .UPI
+const char *bwreply::netFileName()
+{
+    static char netName[13];
+
+    sprintf(netName, "%s.NET", findBaseName(replyInnerName));
+    return netName;
+}
+
 bool bwreply::getRep1(FILE *uplFile, upl_bw *l, int recnum)
+{
+    fseek(uplFile, getshort(uplHeader->upl_header_len) + recnum *
+          getshort(uplHeader->upl_rec_len), SEEK_SET);
+    if (fread(&(l->uplRec), sizeof(UPL_REC), 1, uplFile) != 1)
+        return false;
+
+    getRepBody(l);
+
+    return true;
+}
+
+// Read one message body, stripping the kludge lines back out
+void bwreply::getRepBody(upl_bw *l)
 {
     FILE *orgfile, *destfile;
     const char *orgname;
     int c;
     long count = 0;
-
-    fseek(uplFile, getshort(uplHeader->upl_header_len) + recnum *
-          getshort(uplHeader->upl_rec_len), SEEK_SET);
-    if (fread(&(l->uplRec), sizeof(UPL_REC), 1, uplFile) != 1)
-        return false;
 
     orgname = upWorkList->exists((char *) l->uplRec.filename);
 
@@ -629,12 +654,18 @@ bool bwreply::getRep1(FILE *uplFile, upl_bw *l, int recnum)
     l->msglen = count;
 
     remove(orgname);
-
-    return true;
 }
 
-void bwreply::getReplies(FILE *uplFile)
+void bwreply::getReplies(FILE *repFile)
 {
+    // pickInnerName() decides which of the two we were handed
+    if (strstr(replyInnerName, ".UPI")) {
+        getRepliesOld(repFile);
+        return;
+    }
+
+    FILE *uplFile = repFile;
+
     if (!fread(uplHeader, sizeof(UPL_HEADER), 1, uplFile))
         fatalError("Error reading UPL file");
 
@@ -653,6 +684,98 @@ void bwreply::getReplies(FILE *uplFile)
         }
     }
     uplListHead = baseUplList.nextRecord;
+}
+
+/* Level 2 replies arrive as a *.UPI holding everything but netmail, plus a
+   *.NET holding the netmail. Both are widened into UPL_RECs here, so the
+   rest of the driver only ever deals with the one structure. */
+void bwreply::getRepliesOld(FILE *upiFile)
+{
+    UPI_REC upiRec;
+
+    long count = (upWorkList->getSize() - UPI_HEAD_SIZE) /
+                 (long) sizeof(UPI_REC);
+
+    noOfLetters = 0;
+    uplListHead = 0;
+
+    for (long c = 0; c < count; c++) {
+        fseek(upiFile, UPI_HEAD_SIZE + c * (long) sizeof(UPI_REC), SEEK_SET);
+        if (fread(&upiRec, sizeof upiRec, 1, upiFile) != 1)
+            break;
+
+        upl_bw *l = new upl_bw;
+        UPL_REC &u = l->uplRec;
+
+        memcpy(u.from, upiRec.from, sizeof u.from);
+        memcpy(u.to, upiRec.to, sizeof u.to);
+        memcpy(u.subj, upiRec.subj, sizeof u.subj);
+        memcpy(u.unix_date, upiRec.unix_date, sizeof u.unix_date);
+        memcpy(u.filename, upiRec.fname, sizeof u.filename);
+        memcpy(u.echotag, upiRec.echotag, sizeof u.echotag);
+
+        putshort(u.msg_attr,
+                 ((upiRec.flags & UPI_PRIVATE) ? UPL_PRIVATE : 0) |
+                 ((upiRec.flags & UPI_NO_ECHO) ? UPL_NO_ECHO : 0));
+
+        getRepBody(l);
+        addUpl(l);
+    }
+
+    getNet();
+}
+
+// The netmail half of a level 2 reply packet
+void bwreply::getNet()
+{
+    const char *netName = upWorkList->exists(netFileName());
+    if (!netName)
+        return;
+
+    FILE *nf = fopen(netName, "rb");
+    if (!nf)
+        return;
+
+    NET_REC netRec;
+
+    while (fread(&netRec, sizeof netRec, 1, nf) == 1) {
+        upl_bw *l = new upl_bw;
+        UPL_REC &u = l->uplRec;
+
+        memcpy(u.from, netRec.msg.from, sizeof u.from);
+        memcpy(u.to, netRec.msg.to, sizeof u.to);
+        memcpy(u.subj, netRec.msg.subj, sizeof u.subj);
+        memcpy(u.unix_date, netRec.unix_date, sizeof u.unix_date);
+        memcpy(u.filename, netRec.fname, sizeof u.filename);
+        memcpy(u.echotag, netRec.echotag, sizeof u.echotag);
+
+        memcpy(u.destzone, netRec.zone, sizeof u.destzone);
+        memcpy(u.destnet, netRec.msg.destnet, sizeof u.destnet);
+        memcpy(u.destnode, netRec.msg.dest, sizeof u.destnode);
+        memcpy(u.destpoint, netRec.point, sizeof u.destpoint);
+
+        unsigned attr = getshort(netRec.msg.attr);
+        putshort(u.msg_attr, UPL_NETMAIL |
+                 ((attr & MSG_NET_PRIVATE) ? UPL_PRIVATE : 0));
+        putshort(u.netmail_attr, attr);
+        putlong(u.replyto, getshort(netRec.msg.reply));
+
+        getRepBody(l);
+        addUpl(l);
+    }
+
+    fclose(nf);
+    remove(netName);
+}
+
+/* An existing reply packet may hold either file, whatever this packet's INF
+   header calls for: every release before this one wrote a *.UPL. */
+void bwreply::pickInnerName()
+{
+    char *ext = strrchr(replyInnerName, '.');
+
+    if (ext && oldStyle && !upWorkList->exists(replyInnerName))
+        strcpy(ext, ".UPL");
 }
 
 area_header *bwreply::getNextArea()
@@ -823,11 +946,91 @@ void bwreply::addRep1(FILE *uplFile, upl_base *node, int)
         }
         fclose(orgfile);
     }
-    fwrite(&(l->uplRec), sizeof(UPL_REC), 1, uplFile);
+
+    if (oldStyle)
+        addOldRec(uplFile, l);
+    else
+        fwrite(&(l->uplRec), sizeof(UPL_REC), 1, uplFile);
+}
+
+/* Narrow a UPL_REC back into the level 2 files. The netmail attribute bits
+   are shared with MSG_REC.attr, so they carry across unchanged. */
+void bwreply::addOldRec(FILE *upiFile, upl_bw *l)
+{
+    UPL_REC &u = l->uplRec;
+    unsigned msg_attr = getshort(u.msg_attr);
+
+    if (msg_attr & UPL_NETMAIL) {
+        NET_REC netRec;
+        memset(&netRec, 0, sizeof netRec);
+
+        memcpy(netRec.msg.from, u.from, sizeof netRec.msg.from);
+        memcpy(netRec.msg.to, u.to, sizeof netRec.msg.to);
+        memcpy(netRec.msg.subj, u.subj, sizeof netRec.msg.subj);
+
+        time_t unixTime = (time_t) getlong(u.unix_date);
+        struct tm t = *localtime(&unixTime);
+        strftime((char *) netRec.msg.date, sizeof netRec.msg.date,
+                 "%d %b %y  %H:%M:%S", &t);
+
+        memcpy(netRec.msg.dest, u.destnode, sizeof netRec.msg.dest);
+        memcpy(netRec.msg.destnet, u.destnet, sizeof netRec.msg.destnet);
+        putshort(netRec.msg.attr, getshort(u.netmail_attr) |
+                 ((msg_attr & UPL_PRIVATE) ? MSG_NET_PRIVATE : 0));
+        putshort(netRec.msg.reply, (unsigned) getlong(u.replyto));
+
+        memcpy(netRec.fname, u.filename, sizeof netRec.fname);
+        memcpy(netRec.echotag, u.echotag, sizeof netRec.echotag);
+        memcpy(netRec.zone, u.destzone, sizeof netRec.zone);
+        memcpy(netRec.point, u.destpoint, sizeof netRec.point);
+        memcpy(netRec.unix_date, u.unix_date, sizeof netRec.unix_date);
+
+        if (!netFile) {
+            netFile = fopen(netFileName(), "wb");
+            if (!netFile)
+                return;
+            netUsed = true;
+        }
+        fwrite(&netRec, sizeof netRec, 1, netFile);
+    } else {
+        UPI_REC upiRec;
+        memset(&upiRec, 0, sizeof upiRec);
+
+        memcpy(upiRec.from, u.from, sizeof upiRec.from);
+        memcpy(upiRec.to, u.to, sizeof upiRec.to);
+        memcpy(upiRec.subj, u.subj, sizeof upiRec.subj);
+        memcpy(upiRec.unix_date, u.unix_date, sizeof upiRec.unix_date);
+        memcpy(upiRec.fname, u.filename, sizeof upiRec.fname);
+        memcpy(upiRec.echotag, u.echotag, sizeof upiRec.echotag);
+
+        upiRec.flags = ((msg_attr & UPL_PRIVATE) ? UPI_PRIVATE : 0) |
+                       ((msg_attr & UPL_NO_ECHO) ? UPI_NO_ECHO : 0);
+
+        fwrite(&upiRec, sizeof upiRec, 1, upiFile);
+    }
+}
+
+void bwreply::repFinish()
+{
+    if (netFile) {
+        fclose(netFile);
+        netFile = 0;
+    }
 }
 
 void bwreply::addHeader(FILE *uplFile)
 {
+    if (oldStyle) {
+        UPI_HEADER newUpiHeader;
+        memset(&newUpiHeader, 0, sizeof newUpiHeader);
+
+        strncpy((char *) newUpiHeader.vernum, MM_VERNUM, 12);
+        for (int c = 0; newUpiHeader.vernum[c]; newUpiHeader.vernum[c++] -= 10);
+
+        fwrite(&newUpiHeader, 1, UPI_HEAD_SIZE, uplFile);
+        return;
+    }
+
     UPL_HEADER newUplHeader;
     memset(&newUplHeader, 0, sizeof(UPL_HEADER));
 
@@ -884,7 +1087,7 @@ void bwreply::repFileName()
         replyInnerName[x] = toupper(basename[x]);
     }
     strcpy(replyPacketName + x, ".new");
-    strcpy(replyInnerName + x, ".UPL");
+    strcpy(replyInnerName + x, oldStyle ? ".UPI" : ".UPL");
 }
 
 const char *bwreply::repTemplate(bool offres)
@@ -897,7 +1100,12 @@ const char *bwreply::repTemplate(bool offres)
         // The glob has to reach the shell unquoted, but the inner name comes
         // from the packet header, so quote that part.
         char *qname = quotespace(replyInnerName);
-        sprintf(buff, "%s *.MSG", qname);
+        if (netUsed) {
+            char *qnet = quotespace(netFileName());
+            sprintf(buff, "%s %s *.MSG", qname, qnet);
+            delete[] qnet;
+        } else
+            sprintf(buff, "%s *.MSG", qname);
         delete[] qname;
     }
 

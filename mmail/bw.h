@@ -70,12 +70,24 @@ class bwreply : public pktreply
 
     UPL_HEADER *uplHeader;
 
+    /* Packet level 2 doors take replies as a *.UPI plus, for netmail
+       only, a *.NET; level 3 doors take a single *.UPL. */
+    bool oldStyle, netUsed;
+    FILE *netFile;
+
     int getAreaFromTag(const char *);
     bool getRep1(FILE *, upl_bw *, int);
+    void getRepBody(upl_bw *);
     void getReplies(FILE *);
+    void getRepliesOld(FILE *);
+    void getNet();
+    const char *netFileName();
     const char *freeFileName();
     void addRep1(FILE *, upl_base *, int);
+    void addOldRec(FILE *, upl_bw *);
     void addHeader(FILE *);
+    void pickInnerName();
+    void repFinish();
     void repFileName();
     const char *repTemplate(bool);
     char *nextLine(FILE *);
