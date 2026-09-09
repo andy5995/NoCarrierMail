@@ -748,6 +748,12 @@ ListWindow::ListWindow()
     position = active = 0;
     oldPos = oldActive = oldHigh = -100;
     lynxNav = mm.res.getInt(UseLynxNav);
+
+    /* The window geometry is not known until MakeActive() runs, but the
+       cursor can be moved before that -- AreaListWindow::FirstUnread()
+       does. Start at zero so checkPos() can tell it has no height yet
+       rather than scrolling by an indeterminate one. */
+    list_max_y = list_max_x = top_offset = 0;
 }
 
 ListWindow::~ListWindow()
@@ -761,6 +767,12 @@ void ListWindow::checkPos(int limit)
 
     if (active < 0)
         active = 0;
+
+    if (list_max_y < 1) {
+        // No geometry yet: leave the list unscrolled.
+        position = 0;
+        return;
+    }
 
     if (active < position)
         position = active;
