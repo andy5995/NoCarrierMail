@@ -4,6 +4,22 @@ Revision History
 (in-progress)
 -------------
 
+- QWK: netmail conferences are recognised. Replying to a netmail message now
+  fills in the sender's address, and a reply you enter carries its destination,
+  so the door can route it instead of rejecting it. (#44, #45)
+- Fix the Replies area going missing when you open the first packet of a
+  session.
+- Mark an area as Latin-1 with `8` in the area list, for boards that export
+  accented text in areas that say nothing about their character set -- a name
+  spelled Björn was drawn as Bj÷rn. The setting is remembered per board. (#42)
+- Blue Wave: replies for a packet level 2 door are written as the *.UPI and
+  *.NET files such a door expects.
+- Blue Wave: offline configuration names its first section the way the Blue
+  Wave Developer's Kit specifies, so a door that checks the name applies your
+  area changes.
+- While composing a reply header, the length of the field being edited is
+  shown against its limit. (#18)
+
 
 0.54 - 2026-07-31
 -----------------
