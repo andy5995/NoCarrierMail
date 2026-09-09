@@ -1019,7 +1019,7 @@ bool bwreply::makeOffConfig()
 
         fwrite(&pdqhead, 1, sizeof pdqhead, olc);
     } else
-        fprintf(olc, "[Global Mail Host Configuration]\r\n"
+        fprintf(olc, "[Global Mail Host Information]\r\n"
                      "AreaChanges = ON\r\n\r\n");
 
     int oldarea = mm.areaList->getAreaNo();
