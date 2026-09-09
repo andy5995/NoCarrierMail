@@ -352,6 +352,54 @@ static void qwkDispDate(char *dest, size_t destlen, const char *raw)
     formatDate(dest, destlen, &t, mm.res.get(dateFormat));
 }
 
+/* A netmail message keeps its real subject in a Subject: kludge at the head
+   of the body, which is not otherwise read until the message is opened. Peek
+   at it so the letter list can show the subject rather than the address that
+   occupies the subject field. Only messages whose field holds an address get
+   here, so this is not a read per message. */
+char *qwkpack::kludgeSubject(unsigned long rawpos, long msglen)
+{
+    static const char tag[] = "subject:";
+    const long taglen = (long) sizeof tag - 1;
+
+    char buf[128];
+    long len = (msglen < (long) sizeof buf) ? msglen : (long) sizeof buf;
+
+    if (len <= taglen)
+        return 0;
+
+    long oldpos = ftell(infile);
+    fseek(infile, rawpos, SEEK_SET);
+    size_t got = fread(buf, 1, (size_t) len, infile);
+    fseek(infile, oldpos, SEEK_SET);
+
+    if ((long) got != len)
+        return 0;
+
+    if (strncasecmp(buf, tag, (size_t) taglen))
+        return 0;
+
+    int linebreak = greekqwk ? 12 : 227;
+
+    long i = taglen;
+    while ((i < len) && (buf[i] == ' '))
+        i++;
+
+    long start = i;
+    while ((i < len) && ((unsigned char) buf[i] != linebreak) &&
+           (buf[i] != '\n') && ((i - start) < 71))
+        i++;
+
+    if (i == start)
+        return 0;
+
+    char *out = new char[i - start + 1];
+    memcpy(out, buf + start, (size_t) (i - start));
+    out[i - start] = '\0';
+
+    return out;
+}
+
 letter_header *qwkpack::getNextLetter()
 {
     static net_address nullNet;
@@ -419,16 +467,32 @@ letter_header *qwkpack::getNextLetter()
     char ddate[40];
     qwkDispDate(ddate, sizeof ddate, q.date);
 
+    /* QWKE's "Subject line method": a netmail message carries its
+       correspondent's address in the subject field behind an '@', and its
+       real subject as a Subject: kludge that postfirstblk() picks up. Take
+       the address, so replying to the message can pre-fill it. */
+    net_address na;
+    char *ksubj = 0;
+
+    if ((areas[areaID].attr & NETMAIL) && (lsubj[0] == '@') && lsubj[1]) {
+        na = lsubj + 1;
+
+        ksubj = kludgeSubject(rawpos, q.msglen);
+        if (ksubj)
+            lsubj = ksubj;
+    }
+
     letter_header *newLetter = new letter_header(lsubj, lto, lfrom, ddate,
         headers.get(pos, "Message-ID"), q.refnum, letterID, q.msgnum,
         areaID, q.privat, q.msglen, this,
-        nullNet, !(!(areas[areaID].attr & LATINCHAR)));
+        na.isSet ? na : nullNet, !(!(areas[areaID].attr & LATINCHAR)));
 
     newLetter->setVotes(upVotes, downVotes);
 
     delete[] cfrom;
     delete[] cto;
     delete[] csubj;
+    delete[] ksubj;
 
     return newLetter;
 }
@@ -730,6 +794,10 @@ void qwkpack::readToReader()
                     if (strchr(s, 'E'))
                         attr |= ECHOAREA;
 
+                    // Netmail conference (QWKE spec; docs/qwke-format.md)
+                    if (strchr(s, 'N'))
+                        attr |= NETMAIL;
+
                     areas[getXNum(cnum)].attr = attr;
                 }
             } else
@@ -758,12 +826,14 @@ qwkreply::upl_qwk::upl_qwk(const char *name) : pktreply::upl_base(name)
     recpos = 0;
     voteDir = 0;
     voteTarget = voteID = 0;
+    netsubj = 0;
 }
 
 qwkreply::upl_qwk::~upl_qwk()
 {
     delete[] voteTarget;
     delete[] voteID;
+    delete[] netsubj;
 }
 
 qwkreply::qwkreply() : pktreply()
@@ -1012,6 +1082,16 @@ void qwkreply::enterLetter(letter_header &newLetter,
     strncpy(newList->qHead.to, newLetter.getTo(),
             sizeof(newList->qHead.to) - 1);
 
+    /* QWKE's "Subject line method" for netmail: the destination address
+       occupies the subject field, prefixed with '@', and the real subject
+       travels as a Subject: kludge line. See docs/qwke-format.md. Internet
+       mail uses a different shape and is not handled here. */
+    net_address &na = newLetter.getNetAddr();
+    if (na.isSet && !na.isInternet && mm.areaList->isNetmail()) {
+        newList->netsubj = strdupplus(newLetter.getSubject());
+        sprintf(newList->qHead.subject, "@%.60s", (const char *) na);
+    }
+
     newList->qHead.msgnum = atol(mm.areaList->getShortName());
     newList->qHead.privat = newLetter.getPrivate();
     newList->qHead.refnum = newLetter.getReplyTo();
@@ -1127,12 +1207,17 @@ void qwkreply::addRep1(FILE *rep, upl_base *node, int c)
         fprintf(rep, "From: %s%c", l->qHead.from, linebreak);
     if (longto)
         fprintf(rep, "To: %s%c", l->qHead.to, linebreak);
-    if (longsubj)
-        fprintf(rep, "Subject: %s%c", l->qHead.subject, linebreak);
-    if (longfrom || longto || longsubj)
+    if (l->netsubj)
+        fprintf(rep, "Subject: %s%c", l->netsubj, linebreak);
+    else
+        if (longsubj)
+            fprintf(rep, "Subject: %s%c", l->qHead.subject, linebreak);
+    if (longfrom || longto || longsubj || l->netsubj)
         fprintf(rep, "%c", linebreak);
 
-    if (longfrom || longto || longsubj) {
+    /* Not for a netmail message: HEADERS.DAT overrides the subject field on
+       import, which is where the address is. */
+    if (!l->netsubj && (longfrom || longto || longsubj)) {
         if (!hdrFile)
             hdrFile = fopen("HEADERS.DAT", "wb");
         if (hdrFile) {

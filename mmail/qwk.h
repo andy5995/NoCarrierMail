@@ -67,6 +67,7 @@ class qwkpack : public pktbase
     void readIndices();
     void loadHeaders();
     void loadVoting();
+    char *kludgeSubject(unsigned long, long);
 
     letter_body *getBody(letter_header &);
     void getblk(int, long &, long, unsigned char *&, unsigned char *&);
@@ -92,6 +93,7 @@ class qwkreply : public pktreply
         int voteDir;            // 0 = regular reply; 1 = up, -1 = down
         char *voteTarget;       // voted-on message's ID (In-Reply-To)
         char *voteID;           // the ballot's own message-ID
+        char *netsubj;          // real subject, when the address took its place
 
         upl_qwk(const char * = 0);
         ~upl_qwk();
