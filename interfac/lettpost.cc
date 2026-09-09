@@ -126,7 +126,7 @@ int LetterWindow::HeaderLine(ShadowedWin &win, char *buf, int limit,
                              int pos, coltype color)
 {
     areaconv_in(buf);
-    int getit = win.getstring(pos, 8, buf, limit, color, color);
+    int getit = win.getstring(pos, 8, buf, limit, color, color, true);
     areaconv_out(buf);
     return getit;
 }

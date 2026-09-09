@@ -474,8 +474,29 @@ void ShadowedWin::touch()
     Win::wtouch();
 }
 
+// Draw "used/limit" on the bottom border, right-aligned
+void ShadowedWin::putCount(size_t used, int maxlen, coltype bg_color,
+                           coltype fg_color)
+{
+    char buf[32];
+
+    sprintf(buf, " %d/%d ", (int) used, maxlen);
+
+    int len = strlen(buf);
+    int cx = getmaxx(win) - len - 2;
+
+    if (cx > 0) {
+        attrib(bg_color);
+        put(getmaxy(win) - 1, cx, buf, len);
+        attrib(fg_color);
+    }
+}
+
+/* With counter set, the length of the field being edited is shown against
+   its limit on the window's bottom border. Only the reply-compose header
+   asks for it; on the other input spots it would be clutter. */
 int ShadowedWin::getstring(int y, int x, char *string, int maxlen,
-                           coltype bg_color, coltype fg_color)
+                           coltype bg_color, coltype fg_color, bool counter)
 {
     int i, j, offset, end, c;
     char *tmp = new char[maxlen + 1];
@@ -501,11 +522,14 @@ int ShadowedWin::getstring(int y, int x, char *string, int maxlen,
     if (!string[0])
         wmove(win, y, x);
 
-    cursor_on();
-    update();
-
     i = end = 0;
     bool first_key = true;
+
+    if (counter)
+        putCount(strlen(string), maxlen, bg_color, fg_color);
+
+    cursor_on();
+    update();
 
     while (!end) {
         do
@@ -642,6 +666,10 @@ int ShadowedWin::getstring(int y, int x, char *string, int maxlen,
             for (j = vis; j < dwidth; j++)
                 put(y, x + j, ACS_BOARD);
         }
+        if (counter)
+            putCount(first_key ? strlen(string) : strlen(tmp), maxlen,
+                     bg_color, fg_color);
+
         wmove(win, y, x + i - offset);
         update();
     }

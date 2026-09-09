@@ -213,7 +213,8 @@ class ShadowedWin : public Win
     ShadowedWin(int, int, int, coltype, const char * = 0, coltype = C_SBACK);
     ~ShadowedWin();
     void touch();
-    int getstring(int, int, char *, int, coltype, coltype);
+    void putCount(size_t, int, coltype, coltype);
+    int getstring(int, int, char *, int, coltype, coltype, bool = false);
 };
 
 class InfoWin : public ShadowedWin
