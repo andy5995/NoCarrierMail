@@ -742,7 +742,7 @@ void qwkpack::readDoorId()
 // Read the QWKE file TOREADER.EXT
 void qwkpack::readToReader()
 {
-    char *s;
+    char *s, flags[128];
     int cnum;
     unsigned long attr;
 
@@ -754,48 +754,50 @@ void qwkpack::readToReader()
             s = nextLine();
 
             if (!strncasecmp(s, "area ", 5)) {
-                if (sscanf(s + 5, "%d %s", &cnum, s) == 2) {
+                // Scan the flags into their own buffer; sscanf may not
+                // read from and write to the same string.
+                if (sscanf(s + 5, "%d %127s", &cnum, flags) == 2) {
 
                     attr = SUBKNOWN;
 
                     // If a group is marked subscribed:
-                    if (strchr(s, 'a'))
+                    if (strchr(flags, 'a'))
                         attr |= ACTIVE;
                     else
-                        if (strchr(s, 'p'))
+                        if (strchr(flags, 'p'))
                             attr |= (ACTIVE | PERSONLY);
                         else
-                            if (strchr(s, 'g'))
+                            if (strchr(flags, 'g'))
                                 attr |= (ACTIVE | PERSALL);
 
                     // "Handles" or "Anonymous":
-                    if (strchr(s, 'H') || strchr(s, 'A'))
+                    if (strchr(flags, 'H') || strchr(flags, 'A'))
                         attr |= ALIAS;
 
                     // Public-only/Private-only:
-                    if (strchr(s, 'P'))
+                    if (strchr(flags, 'P'))
                         attr |= PRIVATE;
                     else
-                        if (strchr(s, 'O'))
+                        if (strchr(flags, 'O'))
                             attr |= PUBLIC;
                         else
                             attr |= (PUBLIC | PRIVATE);
 
                     // Read-only:
-                    if (strchr(s, 'R'))
+                    if (strchr(flags, 'R'))
                         attr |= READONLY;
 
                     /* Set character set to Latin-1 for Internet or
                        Usenet areas -- but is this the right thing here? */
 
-                    if (strchr(s, 'U') || strchr(s, 'I'))
+                    if (strchr(flags, 'U') || strchr(flags, 'I'))
                         attr |= LATINCHAR;
 
-                    if (strchr(s, 'E'))
+                    if (strchr(flags, 'E'))
                         attr |= ECHOAREA;
 
                     // Netmail conference (QWKE spec; docs/qwke-format.md)
-                    if (strchr(s, 'N'))
+                    if (strchr(flags, 'N'))
                         attr |= NETMAIL;
 
                     areas[getXNum(cnum)].attr = attr;
