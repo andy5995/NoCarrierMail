@@ -56,7 +56,12 @@ Internet mail has two shapes:
 The address therefore occupies the subject field, and a message's real subject
 has to travel as a `Subject:` kludge line if it is needed at all.
 
-We do not implement any of this yet; see issues #44 and #45.
+The netmail form is implemented in both directions (issues #44 and #45).
+`qwkpack::getNextLetter()` takes the address out of the subject field and
+restores the real subject from the `Subject:` kludge;
+`qwkreply::enterLetter()` writes it back the same way, and skips HEADERS.DAT
+for that message so the subject field is not overridden. Neither internet
+shape is handled.
 
 ## TOREADER.EXT (door to reader)
 
@@ -114,10 +119,11 @@ Taken from the BBS's own records:
 | `&` | area allows file attaches |
 
 Of these, `qwkpack::readToReader()` acts on `a`/`p`/`g`, `H`, `A`, `P`, `O`,
-`R` and `E`; it treats `U` and `I` as nothing more than a hint to set
-`LATINCHAR`, and ignores the rest. So **a QWK conference is never given an
-area type** — not `NETMAIL`, not `INTERNET`, not `USENET` — even when the
-packet says so plainly (issue #44).
+`R`, `E` and `N`; it treats `U` and `I` as nothing more than a hint to set
+`LATINCHAR`, and ignores `X`, `Z`, `L` and `&`. `N` is the only one that gives
+a QWK conference an area type, `NETMAIL`, which is what the subject-line
+addressing above depends on (issue #44). A conference is still never marked
+`INTERNET` or `USENET`.
 
 [Synchronet](https://www.synchro.net/) writes a subset of these and adds `Q`
 for a QWKnet area, which is not in the spec; see `src/sbbs3/pack_qwk.cpp`.
