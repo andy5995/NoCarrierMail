@@ -70,6 +70,15 @@
 # define HAS_APPDATA
 #endif
 
+/* The Win32 console code page API (kernel32, so no extra library to link).
+   Our drawing is single-byte CP437 and the console decides how that is shown;
+   on Windows nothing else tells us, since HAS_LANGINFO is off for every
+   compiler listed below. */
+
+#if defined(_WIN32) || defined(__WIN32__)
+# define HAS_CONSOLE_CP
+#endif
+
 /* MS-DOS and DOS-like systems. */
 
 #if defined(__MSDOS__) || defined(__WIN32__) || defined(__OS2__)

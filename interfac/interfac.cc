@@ -962,6 +962,9 @@ void Interface::KeyHandle()  // Main loop
                 break;
             case 'C':
                 isoConsole = !isoConsole;
+#ifdef HAS_CONSOLE_CP
+                winConsoleSetCP(isoConsole);
+#endif
                 redraw();
                 ReportWindow(isoConsole ? "Charset: Latin-1" :
                              "Charset: CP437");

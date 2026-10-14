@@ -27,6 +27,12 @@ char *mygetcwd();
 #ifdef HAS_APPDATA
 const char *appDataHome();
 #endif
+#ifdef HAS_CONSOLE_CP
+bool winConsoleIsUTF8();
+void winConsoleSetCP(bool);
+void winConsoleRestore();
+void winConsoleResume();
+#endif
 const char *sysname();
 bool myopendir(const char *);
 const char *myreaddir(mystat &);

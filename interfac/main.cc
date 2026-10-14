@@ -138,6 +138,11 @@ int main(int argc, char **argv)
     utf8Console = false;
 #endif
 
+#if defined(HAS_CONSOLE_CP) && defined(MM_UTF8_OUT)
+    // A UTF-8 console takes the wide drawing path and needs no code page.
+    utf8Console = winConsoleIsUTF8();
+#endif
+
     if ((2 == argc) && ('-' == argv[1][0]) && loneOption(argv[1]))
         return EXIT_SUCCESS;
 
@@ -155,6 +160,12 @@ int main(int argc, char **argv)
         argv += 2;
         argc -= 2;
     }
+
+#ifdef HAS_CONSOLE_CP
+    // After the rc file and the command line, so Charset is known.
+    winConsoleSetCP(mm.res.getInt(Charset));
+    atexit(winConsoleRestore);
+#endif
 
     ui.init();
     if (argc > 1)

@@ -686,6 +686,13 @@ Here are the keywords and their functions:
   (code page 437, the U.S. standard for the IBM PC and clones) or
   "Latin-1" (aka ISO-8859-1, the standard for most other systems). Note
   that the character set of messages is determined separately (q.v.).
+  On Windows, NoCarrierMail sets the console to match this setting while
+  it runs -- code page 437 for CP437, 1252 for Latin-1 -- and puts the
+  old one back on exit and for the command shell (CTRL-Z). An editor or
+  viewer it starts keeps the same code page, since the file it opens is
+  written in it.
+  A console already set to UTF-8 (code page 65001) is left as it is when
+  `ncmail --version` reports wide character output as available.
 
 `UseTaglines`
   Yes/No. If no, the tagline window is not displayed at all when

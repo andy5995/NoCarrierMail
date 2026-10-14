@@ -68,6 +68,12 @@ extern "C" {
 #endif
 }
 
+// Outside the extern "C" block: the Windows headers carry C++ of their own.
+#ifdef HAS_CONSOLE_CP
+# define WIN32_LEAN_AND_MEAN
+# include <windows.h>
+#endif
+
 #ifndef S_IREAD
 # define S_IREAD S_IRUSR
 #endif
@@ -253,6 +259,69 @@ const char *appDataHome()
     }
 
     return path;
+}
+#endif
+
+#ifdef HAS_CONSOLE_CP
+// The user's own code pages, and the one we set; 0 until we change anything.
+static UINT userOutCP, userInCP, ourCP;
+
+/* The console draws our single-byte output through its own code page, so one
+   left at 1252 shows CP437 box drawing as accented letters. */
+
+bool winConsoleIsUTF8()
+{
+    return 65001 == GetConsoleOutputCP();
+}
+
+static BOOL WINAPI winConsoleBreak(DWORD)
+{
+    winConsoleRestore();
+    return FALSE;       // let the default handling end the process
+}
+
+/* Match the console to what we send it and read from it: CP437, or Latin-1
+   when the Charset setting (or the C key) says the console is Latin-1. A
+   UTF-8 console is left alone, since the wide drawing path needs no code
+   page. Input is set too, so typed characters arrive in the page we draw
+   them in.
+
+   1252 stands in for Latin-1. Every console has it, and the two differ only
+   at 0x80-0x9F: our CP437-to-Latin-1 table never produces those, while a
+   letter already marked Latin-1 passes through untouched -- and text with
+   bytes there is usually 1252 in practice, which 28591 would show as
+   control codes. */
+
+void winConsoleSetCP(bool latin1)
+{
+    if (utf8Console)
+        return;
+
+    if (!ourCP) {
+        userOutCP = GetConsoleOutputCP();
+        userInCP = GetConsoleCP();
+        SetConsoleCtrlHandler(winConsoleBreak, TRUE);
+    }
+
+    ourCP = latin1 ? 1252 : 437;
+    winConsoleResume();
+}
+
+// Put the user's pages back: on exit, and around the command shell.
+void winConsoleRestore()
+{
+    if (ourCP) {
+        SetConsoleOutputCP(userOutCP);
+        SetConsoleCP(userInCP);
+    }
+}
+
+void winConsoleResume()
+{
+    if (ourCP) {
+        SetConsoleOutputCP(ourCP);
+        SetConsoleCP(ourCP);
+    }
 }
 #endif
 
@@ -515,7 +584,16 @@ void Shell::out()
     mychdir(error.getOrigDir());
     touchwin(stdscr);
     refresh();
+
+#ifdef HAS_CONSOLE_CP
+    /* The shell gets the console as the user had it. An editor or viewer
+       keeps ours, since the file it opens was written in our code page. */
+    winConsoleRestore();
+#endif
     mysystem(getenv("COMSPEC"));
+#ifdef HAS_CONSOLE_CP
+    winConsoleResume();
+#endif
 
     ui.redraw();
 }
