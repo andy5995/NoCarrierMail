@@ -93,30 +93,25 @@ void AddressBook::MakeActive(bool NoEnterA)
     if (!expmode) {
         int x = xwidth / 3 + 1;
         int y = list_max_y + 2;
+        int colon[3];
+
+        colon[0] = 3;
+        colon[1] = x + 3;
+        colon[2] = x * 2 + 1;
 
         list->horizline(y);
 
-        list->put(++y, 3, ": Quit addressbook");
-        list->put(y, x + 3, ": Add new address");
-        list->put(y, x * 2 + 1, ": search / next");
-        list->put(++y, 3, ": Kill current address");
-        list->put(y, x + 3, ": Edit address");
+        helplist h;
+        helpTable(address, inletter, h);
 
-        if (inletter)
-            list->put(y, x * 2 + 1, ": address from Letter");
-
-        list->attrib(C_ADDR1);
-        list->put(y, 2, "K");
-        list->put(y, x + 2, "E");
-
-        if (inletter)
-            list->put(y, x * 2, "L");
-
-        list->put(--y, 2, "Q");
-        list->put(y, x + 2, "A");
-        list->put(y, x * 2 - 3, "/, .");
+        helpBar(list, y + 1, 2, colon, 3, h, C_ADDR1, C_ADDR2);
     }
     DrawAll();
+}
+
+bool AddressBook::inLetter() const
+{
+    return inletter;
 }
 
 void AddressBook::Delete()

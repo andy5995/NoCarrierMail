@@ -75,23 +75,19 @@ void TaglineWindow::MakeActive()
         int x = xwidth / 3 + 1;
         int y = list_max_y + 1;
 
+        int colon[3];
+
+        colon[0] = 3;
+        colon[1] = x + 1;
+        colon[2] = x * 2 + 5;
+
         list->attrib(C_TKEYSTEXT);
         list->horizline(y);
-        list->put(++y, 2, "Q");
-        list->put(y, x, "R");
-        list->put(y, x * 2, "Enter");
-        list->put(++y, 2, "K");
-        list->put(y, x, "A");
-        //list->put(y, x * 2, " /, .");
-        list->put(y, x * 2 + 4, "E");
-        list->attrib(C_TTEXT);
-        list->put(y, 3, ": Kill current tagline");
-        list->put(y, x + 1, ": Add new tagline");
-        //list->put(y, x * 2 + 5, ": search / next");
-        list->put(y, x * 2 + 5, ": Edit tagline");
-        list->put(--y, 3, ": don't apply tagline");
-        list->put(y, x + 1, ": Random select tagline");
-        list->put(y, x * 2 + 5, ": apply tagline");
+
+        helplist h;
+        helpTable(tagwin, false, h);
+
+        helpBar(list, y + 1, 2, colon, 3, h, C_TKEYSTEXT, C_TTEXT);
     }
     DrawAll();
 }

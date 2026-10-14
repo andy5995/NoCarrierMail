@@ -982,6 +982,22 @@ void Interface::KeyHandle()  // Main loop
                 default:;
                 }
                 break;
+            case MM_F1:
+            case '?':
+                // The letter window and ANSI viewer have their own help
+                // states; every other screen with a table gets the popup.
+                switch (state) {
+                case letter:
+                    letterwindow.KeyHandle(Key);
+                    break;
+                case ansiwin:
+                    ansiwindow.KeyHandle(Key);
+                    break;
+                default:
+                    if (helpwindow.fullHelp(state, addresses.inLetter()))
+                        redraw();
+                }
+                break;
             case '!':
             case MM_F2:
                 switch (state) {

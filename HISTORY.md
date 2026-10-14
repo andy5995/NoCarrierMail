@@ -4,6 +4,11 @@ Revision History
 (in-progress)
 -------------
 
+- F1 or `?` now lists every command on the current screen, in the packet list,
+  area list, letter list, address book, tagline window and reply-area picker
+  as well as the letter window and ANSI viewer. The summary along the bottom
+  is a subset that has to fit; this is the whole list, and it works in
+  ExpertMode too.
 - QWK: netmail conferences are recognised. Replying to a netmail message now
   fills in the sender's address, and a reply you enter carries its destination,
   so the door can route it instead of rejecting it. (#44, #45)

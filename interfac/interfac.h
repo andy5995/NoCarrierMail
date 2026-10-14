@@ -338,6 +338,7 @@ public:
     void MakeActive(bool);
     void Delete();
     void Init();
+    bool inLetter() const;
 };
 
 class tagline
@@ -569,19 +570,36 @@ class LetterWindow
     void KeyHandle(int);
 };
 
+// One key and what it does, as listed in the help bar and the F1 window.
+// A {0, 0} entry is a spacer holding the bar's column layout in step.
+struct helpitem {
+    const char *key;
+    const char *desc;
+};
+
+// What one screen lists: its own table, followed by entries that apply only
+// in some situations (the address book's "address from Letter").
+struct helplist {
+    const helpitem *items, *more;
+    int nitems, nmore;
+};
+
+void helpBar(Win *, int, int, const int *, int, const helplist &, coltype,
+             coltype);
+void helpTable(statetype, bool, helplist &);
+
 class HelpWindow
 {
     Win *menu;
     int midpos, endpos, base, items;
 
-    void newHelpMenu(const char **, const char **, int);
-    void h_packetlist();
-    void h_arealist();
-    void h_letterlist();
+    void newHelpMenu(const helplist &);
+    Win *buildFull(const helplist &);
     void h_letter(bool);
  public:
     HelpWindow();
     void MakeActive();
+    bool fullHelp(statetype, bool);
     void Delete();
     void baseNext();
     void baseReset();

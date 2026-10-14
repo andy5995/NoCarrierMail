@@ -12,7 +12,6 @@
 
 void LittleAreaListWindow::MakeActive()
 {
-    position = 0;
     areanum = -1;
 
     mm.areaList->setMode(mm.areaList->getMode() - 1);
@@ -36,6 +35,9 @@ void LittleAreaListWindow::init()
 {
     int oldarea = mm.areaList->getAreaNo();
 
+    // Here rather than in MakeActive(), which a redraw (closing the F1
+    // popup, say) runs again: the list should keep its scroll then.
+    position = 0;
     disp = 0;
     do
         mm.areaList->gotoActive(disp++);
