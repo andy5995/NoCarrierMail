@@ -26,7 +26,16 @@ OUTPATH="${OUTPATH:-$SOURCE_ROOT/out}"
 
 # Pinned so a rebuild of a given commit produces the same bundler.
 QUICK_SHARUN_REV=242932b61e72816c9b826e9cf18d9d94cab31047
-QUICK_SHARUN_URL="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/$QUICK_SHARUN_REV/useful-tools/quick-sharun.sh"
+QUICK_SHARUN_RAW="https://raw.githubusercontent.com/pkgforge-dev/Anylinux-AppImages/$QUICK_SHARUN_REV/useful-tools"
+QUICK_SHARUN_URL="$QUICK_SHARUN_RAW/quick-sharun.sh"
+
+# quick-sharun fetches its helper sources from the repo's main branch, not
+# from its own revision, so the pin above did not cover them. Upstream moved
+# them out of that repo (e3de1528a8, 2026-09-10) and the main-branch URLs now
+# 404, failing every build. Take them from the pinned revision too.
+export ANYLINUX_LIB_SOURCE="$QUICK_SHARUN_RAW/lib/anylinux.c"
+export GTK_CLASS_FIX_SOURCE="$QUICK_SHARUN_RAW/lib/gtk-class-fix.c"
+export HOOKSRC="$QUICK_SHARUN_RAW/hooks"
 
 rm -rf "$BUILD"
 mkdir -p "$BUILD" "$OUTPATH"
