@@ -215,11 +215,25 @@ void helpBar(Win *w, int row, int rows, const int *colon, int ncol,
         if (!it->key)
             continue;
 
-        int y = row + z / ncol, x = colon[z % ncol];
+        int c = z % ncol, y = row + z / ncol, x = colon[c];
+
+        /* Stop a description a space short of the next column's key on this
+           row; a left column widened for a long key ("Space, F") would
+           otherwise run into it. The last column runs to the window edge. */
+        int room = -1;
+        if (c < ncol - 1) {
+            const helpitem *next = (z + 1 < n) ? helpAt(h, z + 1) : 0;
+            int nextx = colon[c + 1] -
+                        ((next && next->key) ? (int) strlen(next->key) : 0);
+
+            room = nextx - 1 - (x + 2);
+            if (room < 0)
+                room = 0;
+        }
 
         w->attrib(textattr);
         w->put(y, x, ": ");
-        w->put(y, x + 2, it->desc);
+        w->put(y, x + 2, it->desc, room);
 
         w->attrib(keyattr);
         w->put(y, x - (int) strlen(it->key), it->key);
@@ -257,6 +271,13 @@ void HelpWindow::newHelpMenu(const helplist &h)
         colon[0] = 2;
         colon[1] = midpos;
         colon[2] = endpos;
+
+        // Keys right-align against the colon, and the left column's sits as
+        // far left as a two-character key allows. A wider key on this page
+        // ("|, ^") moves it over, or the key is drawn off the edge.
+        for (int z = base; z < end; z += 3)
+            if (h.items[z].key && ((int) strlen(h.items[z].key) > colon[0]))
+                colon[0] = strlen(h.items[z].key);
 
         // The list screens have no situational entries, so a page is a
         // plain slice of their table.

@@ -13,6 +13,8 @@ Revision History
   as well as the letter window and ANSI viewer. The summary along the bottom
   is a subset that has to fit; this is the whole list, and it works in
   ExpertMode too.
+- The help bar at the bottom drew the packet list's `|, ^` key off the left
+  edge, and could run a description into the next column's key.
 - QWK: netmail conferences are recognised. Replying to a netmail message now
   fills in the sender's address, and a reply you enter carries its destination,
   so the door can route it instead of rejecting it. (#44, #45)

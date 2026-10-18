@@ -49,8 +49,9 @@ try one and see if it works. :-)
 Pressing F1 or '?' brings up a window listing every command available on
 the current screen, including the ones the summary at the bottom leaves
 out. It works in the packet list, area list, letter list, address book,
-tagline window, letter window and ANSI viewer, and it works with
-"ExpertMode" turned on, when there is no summary at the bottom at all.
+tagline window, reply-area picker, letter window and ANSI viewer, and it
+works with "ExpertMode" turned on, when there is no summary at the bottom
+at all.
 
 The basic navigation keys, available throughout the program, consist of
 the standard cursor and keypad keys, with Enter to select. For terminals
