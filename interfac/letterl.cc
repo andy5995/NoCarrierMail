@@ -8,6 +8,41 @@
  Distributed under the GNU General Public License, version 3 or later. */
 
 #include "interfac.h"
+#include "../mmail/u8text.h"
+
+#ifdef MM_UTF8_OUT
+/* A UTF-8 header field that the screen can show as it is, or 0 to use the
+   single-byte field. */
+static const char *u8field(const char *s)
+{
+    return (utf8Console && mm.letterList->isUtf8()) ? s : 0;
+}
+
+// Copy a UTF-8 field into a list row, cut or padded to exactly cols columns.
+// Three bytes a column is enough for any text without a pile of marks.
+static char *u8pad(char *p, const char *s, int cols)
+{
+    int n = u8fit(s, -1, cols, cols * 3, true);
+
+    memcpy(p, s, n);
+    p += n;
+    for (int w = u8width(s, n, true); w < cols; w++)
+        *p++ = ' ';
+    return p;
+}
+#endif
+
+// Columns a header field takes in the list.
+static int fieldWidth(const char *plain, const char *u8)
+{
+#ifdef MM_UTF8_OUT
+    if (u8 && utf8Console && mm.letterList->isUtf8())
+        return u8width(u8, -1, true);
+#else
+    (void) u8;
+#endif
+    return strlen(plain);
+}
 
 void LetterListWindow::listSave()
 {
@@ -58,6 +93,47 @@ void LetterListWindow::oneLine(int i)
     int st = mm.letterList->getStatus();
 
     char *p = list->lineBuf;
+
+#ifdef MM_UTF8_OUT
+    const char *u8from = u8field(mm.letterList->getFromU8()),
+               *u8to = u8field(mm.letterList->getToU8()),
+               *u8subj = u8field(mm.letterList->getSubjectU8());
+
+    if (u8from || u8to || u8subj) {
+        // The same row as format would give, padded by columns not bytes.
+        const char *origArea = 0;
+
+        if (mm.areaList->isCollection()) {
+            origArea = mm.letterList->getNewsgrps();
+            if (!origArea)
+                origArea =
+                    mm.areaList->getDescription(mm.letterList->getAreaID());
+        }
+
+        p += sprintf(p, "%c%c%c%6ld  ", (st & MS_MARKED) ? 'M' :
+                     (st & MS_SAVED) ? 's' : ' ', (st & MS_REPLIED) ? '~' :
+                     ' ', (st & MS_READ) ? '*' : ' ',
+                     mm.letterList->getMsgNum());
+        p = u8pad(p, u8from ? u8from : mm.letterList->getFrom(), fromWidth);
+        *p++ = ' ';
+        p = u8pad(p, u8to ? u8to : mm.letterList->getTo(), toWidth);
+        *p++ = ' ';
+        p = u8pad(p, stripre(u8subj ? u8subj : mm.letterList->getSubject()),
+                  origArea ? subjWidth - 15 : subjWidth);
+        if (origArea)
+            p += sprintf(p, " %-13.13s ", origArea);
+        *p = '\0';
+
+        coltype linecol = mm.letterList->isPersonal() ? C_LLPERSONAL :
+                          C_LISTWIN;
+
+        list->lineUtf8 = true;
+        DrawOne(i, (st & MS_READ) ? noemph(linecol) : emph(linecol));
+        list->lineUtf8 = false;
+        return;
+    }
+#endif
+
     p += sprintf(p, format, (st & MS_MARKED) ? 'M' :
                  (st & MS_SAVED) ? 's' : ' ', (st & MS_REPLIED) ? '~' : ' ',
                  (st & MS_READ) ? '*' : ' ', mm.letterList->getMsgNum(),
@@ -117,12 +193,14 @@ void LetterListWindow::setFormat()
     for (int i = 0; i < n; i++) {
         mm.letterList->gotoActive(i);
         if (showFrom) {
-            int l = strlen(mm.letterList->getFrom());
+            int l = fieldWidth(mm.letterList->getFrom(),
+                               mm.letterList->getFromU8());
             if (l > wideFrom)
                 wideFrom = l;
         }
         if (showTo) {
-            int l = strlen(mm.letterList->getTo());
+            int l = fieldWidth(mm.letterList->getTo(),
+                               mm.letterList->getToU8());
             if (l > wideTo)
                 wideTo = l;
         }
@@ -145,6 +223,9 @@ void LetterListWindow::setFormat()
     }
 
     maxSubjLen = tot - maxFromLen - maxToLen;
+    fromWidth = maxFromLen;
+    toWidth = maxToLen;
+    subjWidth = maxSubjLen;
 
     sprintf(format, "%%c%%c%%c%%6ld  %%-%d.%ds %%-%d.%ds %%-%d.%ds",
             maxFromLen, maxFromLen, maxToLen, maxToLen, maxSubjLen,

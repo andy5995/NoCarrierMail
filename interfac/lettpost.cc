@@ -102,7 +102,7 @@ void LetterWindow::QuoteText(FILE *reply)
 
     // Output quoted text:
 
-    MakeChain(width, true);
+    MakeChain(width, true, false);
 
     for (i = 0; i < NumOfLines; i++) {
         Line *curr = linelist[i];

@@ -99,8 +99,9 @@ letter_header::letter_header(const char *subjectA,
     const char *followA, const char *replyA, bool qpencA) : driver(driverA),
     replyTo(replyToA), LetterID(LetterIDA), AreaID(AreaIDA), privat(privatA),
     length(lengthA), msgNum(msgNumA), netAddr(netAddrA), charset(charsetA),
-    qpenc(qpencA), upVotes(0), downVotes(0)
+    qpenc(qpencA), utf8(false), upVotes(0), downVotes(0)
 {
+    u8subject = u8to = u8from = 0;
     readO = mm.getReadObject(driver);
 
     const char *cset = mm.res.get(outCharset);
@@ -139,24 +140,33 @@ letter_header::~letter_header()
     delete[] newsgrps;
     delete[] follow;
     delete[] reply;
+    delete[] u8subject;
+    delete[] u8to;
+    delete[] u8from;
 }
 
 void letter_header::changeSubject(const char *newsubj)
 {
     delete[] subject;
     subject = strdupplus(newsubj);
+    delete[] u8subject;     // the UTF-8 form no longer matches
+    u8subject = 0;
 }
 
 void letter_header::changeTo(const char *newto)
 {
     delete[] to;
     to = strdupplus(newto);
+    delete[] u8to;
+    u8to = 0;
 }
 
 void letter_header::changeFrom(const char *newfrom)
 {
     delete[] from;
     from = strdupplus(newfrom);
+    delete[] u8from;
+    u8from = 0;
 }
 
 void letter_header::changeDate(const char *newdate)
@@ -308,6 +318,46 @@ void letter_header::setLatin(bool charsetA)
 bool letter_header::isQP() const
 {
     return qpenc;
+}
+
+// The body is UTF-8, whatever isLatin() says about the area.
+bool letter_header::isUtf8() const
+{
+    return utf8;
+}
+
+void letter_header::setUtf8(bool utf8A)
+{
+    utf8 = utf8A;
+}
+
+/* The header fields as UTF-8, for a screen that can show them; the plain
+   fields keep the single-byte text everything else uses. A null leaves that
+   field without a UTF-8 form. */
+void letter_header::setUtf8Header(const char *subjA, const char *toA,
+                                  const char *fromA)
+{
+    delete[] u8subject;
+    delete[] u8to;
+    delete[] u8from;
+    u8subject = subjA ? strdupplus(subjA) : 0;
+    u8to = toA ? strdupplus(toA) : 0;
+    u8from = fromA ? strdupplus(fromA) : 0;
+}
+
+const char *letter_header::getSubjectU8() const
+{
+    return u8subject;
+}
+
+const char *letter_header::getToU8() const
+{
+    return u8to;
+}
+
+const char *letter_header::getFromU8() const
+{
+    return u8from;
 }
 
 void letter_header::setQP(bool qpencA)
@@ -555,6 +605,26 @@ bool letter_list::isLatin() const
 bool letter_list::isQP() const
 {
     return letterHeader[currentLetter]->isQP();
+}
+
+bool letter_list::isUtf8() const
+{
+    return letterHeader[currentLetter]->isUtf8();
+}
+
+const char *letter_list::getSubjectU8() const
+{
+    return letterHeader[currentLetter]->getSubjectU8();
+}
+
+const char *letter_list::getToU8() const
+{
+    return letterHeader[currentLetter]->getToU8();
+}
+
+const char *letter_list::getFromU8() const
+{
+    return letterHeader[currentLetter]->getFromU8();
 }
 
 void letter_list::setQP(bool qpencA)

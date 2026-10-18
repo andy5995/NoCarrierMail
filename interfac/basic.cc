@@ -8,6 +8,7 @@
  Distributed under the GNU General Public License, version 3 or later. */
 
 #include "interfac.h"
+#include "../mmail/u8text.h"
 
 Win::Win(int height, int width, int topline, chtype backg)
 {
@@ -118,6 +119,28 @@ void Win::put(int y, int x, const chtype *z, int len)
     mvwaddchnstr(win, y, x, (chtype *) z, len);
 }
 
+// Stand-ins for control codes the terminal would act on or swallow.
+
+static chtype ctrlsub(chtype c)
+{
+    switch (c) {
+#ifndef ALLCHARSOK        // unprintable control codes
+    case 14:          // double musical note
+        return 19;
+    case 15:          // much like an asterisk
+        return '*';
+    case 155:         // ESC + high bit = slash-o,
+        return 'o';   // except in CP 437
+    case 8:           // backspace
+    case 12:          // form feed
+        return '#';
+#endif
+    case 27:          // ESC
+        return '`';
+    }
+    return c;
+}
+
 int Win::put(int y, int x, const char *z, int len)
 {
     // Formerly just mvwaddstr() -- this ensures printing of (most)
@@ -140,27 +163,8 @@ int Win::put(int y, int x, const char *z, int len)
     // buffer that isn't NUL-terminated (e.g. AnsiLine::show's atext), so
     // testing *z first would read one byte past the end.
     for (; (counter < len) && *z; z++) {
-        z2 = ((unsigned char) *z);
-        switch (z2) {
-#ifndef ALLCHARSOK        // unprintable control codes
-        case 14:          // double musical note
-            z2 = 19;
-            break;
-        case 15:          // much like an asterisk
-            z2 = '*';
-            break;
-        case 155:         // ESC + high bit = slash-o,
-            z2 = 'o';     // except in CP 437
-            break;
-        case 8:           // backspace
-        case 12:          // form feed
-            z2 = '#';
-            break;
-#endif
-        case 27:          // ESC
-            z2 = '`';
-            break;
-        case '\t':        // TAB
+        z2 = ctrlsub((unsigned char) *z);
+        if (z2 == '\t') {
             z2 = ' ';
             int i = (tabwidth - 1) - (counter % tabwidth);
             len += i;
@@ -246,6 +250,52 @@ void Win::putwide(int y, int x, const unsigned char *z, int len, chtype att,
         setwidecell(cbuffer + i, att | z[i], latin);
 
     mvwadd_wchnstr(win, y, x, cbuffer, len);
+}
+
+/* Draw len bytes of UTF-8 text -- a message body that says it is UTF-8 --
+   clipped to the columns left on the line, with tabs and control codes
+   handled as put() handles them. Returns the number of columns drawn. */
+
+int Win::putu8(int y, int x, const char *z, int len)
+{
+    const int tabwidth = 8;
+    int limit = roomleft(x), cols = 0, n = 0, pos = 0;
+
+    while ((pos < len) && z[pos] && (n < bufwidth)) {
+        unsigned long cp;
+        int used = u8decode(z + pos, len - pos, &cp);
+        int w = u8cpWidth(cp);
+
+        pos += used;
+        if (cp == '\t') {
+            int i = tabwidth - (cols % tabwidth);
+
+            while (i-- && (cols < limit) && (n < bufwidth)) {
+                wbuffer[n++] = L' ';
+                cols++;
+            }
+            continue;
+        }
+        if ((cp < ' ') || (cp == 127))
+            cp = cp437_to_uni[ctrlsub(cp)];
+        else if ((cp > 127) && (cp < 160))
+            cp = '?';
+        else if ((sizeof(wchar_t) < 4) && (cp > 0xFFFF)) {
+            cp = 0xFFFD;        // no surrogate pairs here
+            w = 1;
+        }
+
+        if (cols + w > limit)
+            break;
+        if (!w && !n)           // nothing for a mark to combine with
+            continue;
+        wbuffer[n++] = (wchar_t) cp;
+        cols += w;
+    }
+    wbuffer[n] = L'\0';
+    mvwaddnwstr(win, y, x, wbuffer, n);
+
+    return cols;
 }
 #endif
 
@@ -699,7 +749,9 @@ InfoWin::InfoWin(int height, int width, int topline, coltype backg,
                  const char *title, coltype titleAttrib, int bottx, int topx) :
     ShadowedWin(height, width, topline, backg, title, titleAttrib)
 {
-    lineBuf = new char[COLS];
+    // room for a row of UTF-8, at up to 4 bytes a column
+    lineBuf = new char[COLS * 4 + 1];
+    lineUtf8 = false;
     info = new Win(height - bottx, width - 2, topline + topx, backg);
 }
 
@@ -723,7 +775,12 @@ void InfoWin::touch()
 void InfoWin::oneline(int i, chtype ch)
 {
     info->attrib(ch);
-    info->put(i, 0, lineBuf);
+#ifdef MM_UTF8_OUT
+    if (lineUtf8)
+        info->putu8(i, 0, lineBuf, strlen(lineBuf));
+    else
+#endif
+        info->put(i, 0, lineBuf);
 }
 
 void InfoWin::iscrl(int i)

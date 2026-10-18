@@ -26,5 +26,6 @@ char *letterconv_in(char *);
 char *letterconv_out(char *);
 char *areaconv_in(char *);
 char *areaconv_out(char *);
+char *latinconv_in(char *);
 
 #endif

@@ -8,6 +8,10 @@ Revision History
   Most settings you change there take effect when you leave the editor; the
   manual lists the few that wait for the next start. `ncmail --version` now
   shows where the file is.
+- QWK: a message that Synchronet marks as UTF-8 now displays correctly on a
+  UTF-8 terminal, in the letter list and header as well as the body, block art
+  and wide characters included. Anywhere else, and in quotes and replies, it
+  becomes the nearest single-byte text instead of garbage. (#28)
 - A new settings file starts by asking which editor to use, instead of
   leaving you in vi when EDITOR is not set.
 - F2 now says where the reply packet was saved and how many replies it holds,

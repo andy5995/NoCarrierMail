@@ -8,6 +8,7 @@
  Distributed under the GNU General Public License, version 3 or later. */
 
 #include "interfac.h"
+#include "../mmail/u8text.h"
 
 LetterWindow::Line::Line()
 {
@@ -26,7 +27,7 @@ void LetterWindow::Line::out(FILE *fd)
 LetterWindow::LetterWindow()
 {
     linelist = 0;
-    NM.isSet = hidden = rot13 = false;
+    NM.isSet = hidden = rot13 = chainUtf8 = false;
     NumOfLines = 0;
     tagline1[0] = '\0';
     To = 0;
@@ -168,7 +169,7 @@ void LetterWindow::Line::end_line(bool inet, bool &insig, bool &skipSeenBy)
    list with an array index, wrapping long paragraphs if needed. Also
    flags hidden and quoted lines.
 */
-void LetterWindow::MakeChain(int columns, bool rejoin)
+void LetterWindow::MakeChain(int columns, bool rejoin, bool screen)
 {
     const int TABWIDTH = 8;
 
@@ -195,6 +196,17 @@ void LetterWindow::MakeChain(int columns, bool rejoin)
     Line head, *curr = &head;
     bool insig = false, skipSeenBy = false;
 
+    /* A UTF-8 body stays UTF-8 only on its way to a UTF-8 screen. Quoting
+       and saving want the single-byte text the rest of the program uses, as
+       does any other console, so there it is folded to Latin-1. */
+#ifdef MM_UTF8_OUT
+    const bool wideout = utf8Console;
+#else
+    const bool wideout = false;
+#endif
+    bool u8body = mm.letterList->isUtf8();
+    chainUtf8 = u8body && screen && wideout;
+
     while (msgBody) {
 #ifdef BOGUS_WARNING
         char *src = 0;
@@ -209,7 +221,11 @@ void LetterWindow::MakeChain(int columns, bool rejoin)
             end = true;
         else {
             src = msgBody->getText();
-            letterconv_in(src);
+            if (!u8body)
+                letterconv_in(src);
+            else
+                if (!chainUtf8)
+                    latinconv_in(u8toLatin1(src));
         }
 
         while (!end) {
@@ -232,12 +248,13 @@ void LetterWindow::MakeChain(int columns, bool rejoin)
 
                 char *dest, *begin = 0;
                 curr->text = dest = src;
-                int len = 0;
+                int len = 0, cols = 0;   // bytes, and columns they fill
+                bool full = false;
 
                 int maxcol = columns;
 
-                while (!end && ((len < maxcol) || (rejoin &&
-                      (Quoted == tmpattr) && (len < 80)))) {
+                while (!end && ((cols < maxcol) || (rejoin &&
+                      (Quoted == tmpattr) && (cols < 80)))) {
 
                     unsigned char each = *src;
 
@@ -249,6 +266,7 @@ void LetterWindow::MakeChain(int columns, bool rejoin)
 
                             while (len && (dest[-1] == ' ')) {
                                 len--;
+                                cols--;
                                 dest--;
                             }
 
@@ -277,17 +295,17 @@ void LetterWindow::MakeChain(int columns, bool rejoin)
 
                     switch (each) {
                     case '\t':
-                        maxcol -= (TABWIDTH - (len % TABWIDTH));
+                        maxcol -= (TABWIDTH - (cols % TABWIDTH));
                     case ' ':
                         // begin == start of last word (for wrapping):
 
                         begin = 0;
                         if (Normal == tmpattr)
-                            if (len >= (maxcol - 1))
+                            if (cols >= (maxcol - 1))
                                 wrapped = true;
                         break;
                     case '>':  // Quoted line
-                        if ((len < 5) && (Normal == tmpattr))
+                        if ((cols < 5) && (Normal == tmpattr))
                             tmpattr = Quoted;
                         break;
                     case ':':
@@ -314,9 +332,37 @@ void LetterWindow::MakeChain(int columns, bool rejoin)
                         begin = src;
 
                     if (each) {
+                        int n = 1, w = 1;
+
+                        // A UTF-8 character, with any marks combining
+                        // with it, moves as one; a wide one that would
+                        // only half fit starts the next line instead.
+                        // Reading 4 bytes is safe: a NUL ends a sequence.
+                        if (chainUtf8) {
+                            unsigned long cp;
+
+                            n = u8decode(src, 4, &cp);
+                            w = u8cpWidth(cp);
+                            while (src[n] & 0x80) {
+                                int m = u8decode(src + n, 4, &cp);
+
+                                if (u8cpWidth(cp))
+                                    break;
+                                n += m;
+                            }
+                            if (cols && (cols + w > maxcol)) {
+                                full = true;
+                                break;
+                            }
+                        }
                         *dest++ = each;
                         src++;
+                        while (--n) {
+                            *dest++ = *src++;
+                            len++;
+                        }
                         len++;
+                        cols += w;
                     }
 
                     end = !each;  // a 0-terminated string
@@ -324,11 +370,22 @@ void LetterWindow::MakeChain(int columns, bool rejoin)
 
                 // Start a new line on a word boundary (if needed):
 
-                if ((len >= maxcol) && begin && ((src - begin) < maxcol)
-                    && !(rejoin && (Quoted == tmpattr))) {
-
+                // The word being cut is the last x bytes copied. If it is
+                // the whole line (text with no spaces), break it instead.
+                // src can skip bytes it never copies, so x is measured
+                // only when it lies inside the line.
+                int wordcols = 0;
+                if (begin) {
                     x = src - begin;
+                    wordcols = (chainUtf8 && (x < len)) ?
+                               u8width(dest - x, x, true) : x;
+                }
+
+                if ((full || (cols >= maxcol)) && begin && (wordcols < maxcol)
+                    && (x < len) && !(rejoin && (Quoted == tmpattr))) {
+
                     len -= x;
+                    cols -= wordcols;
                     while (x--)
                         *--src = *--dest;
                     wrapped = (Hidden != tmpattr);
@@ -415,6 +472,34 @@ char *LetterWindow::netAdd(char *tmp, size_t room)
     return tmp;
 }
 
+/* Copy a header field into tmp, at most maxcols columns of it, and return
+   the end. A UTF-8 field is cut by columns without splitting a character. */
+
+static char *fieldcpy(char *tmp, const char *s, int maxcols, bool u8)
+{
+    if (!u8)
+        return strnzcpy(tmp, s, maxcols);
+
+    int n = u8fit(s, -1, maxcols, 255, true);
+
+    memcpy(tmp, s, n);
+    tmp[n] = '\0';
+    return tmp + n;
+}
+
+// Draw a header field built by fieldcpy(); returns the columns it took.
+int LetterWindow::putField(int row, char *tmp, bool u8)
+{
+#ifdef MM_UTF8_OUT
+    if (u8)
+        return header->putu8(row, 8, tmp, strlen(tmp));
+#else
+    (void) u8;
+#endif
+    letterconv_in(tmp);
+    return header->put(row, 8, tmp);
+}
+
 #define flagattr(x) header->attrib((x) ? C_LHFLAGSHI : C_LHFLAGS)
 
 void LetterWindow::DrawFlags()
@@ -485,18 +570,28 @@ void LetterWindow::UpdateHeader()
     if (orgarea != -1)
         mm.areaList->gotoArea(mm.letterList->getAreaID());
 
+    // UTF-8 fields are shown as they are when the screen can take them.
+#ifdef MM_UTF8_OUT
+    const bool u8shown = utf8Console && mm.letterList->isUtf8();
+#else
+    const bool u8shown = false;
+#endif
+    const char *u8 = u8shown ? mm.letterList->getFromU8() : 0;
+
     header->attrib(C_LHFROM);
-    p = strnzcpy(tmp, mm.letterList->getFrom(), maxToFromWidth);
+    p = fieldcpy(tmp, u8 ? u8 : mm.letterList->getFrom(), maxToFromWidth,
+                 u8);
     if (mm.areaList->isEmail())
         netAdd(p, sizeof tmp - (p - tmp));
-    letterconv_in(tmp);
-    header->put(1, 8, tmp);
+    putField(1, tmp, u8);
 
     header->attrib(C_LHTO);
+    u8 = 0;
     if (mm.areaList->hasTo()) {
-        p = (char *) mm.letterList->getTo();
+        u8 = u8shown ? mm.letterList->getToU8() : 0;
+        p = (char *) (u8 ? u8 : mm.letterList->getTo());
         if (*p) {
-            p = strnzcpy(tmp, p, maxToFromWidth);
+            p = fieldcpy(tmp, p, maxToFromWidth, u8);
             if (mm.areaList->isReplyArea())
                 if (p != tmp)
                     netAdd(p, sizeof tmp - (p - tmp));
@@ -506,13 +601,12 @@ void LetterWindow::UpdateHeader()
         strnzcpy(tmp, (const char *) mm.letterList->getNetAddr(),
                  maxToFromWidth);
 
-    letterconv_in(tmp);
-    header->put(2, 8, tmp);
+    putField(2, tmp, u8);
 
     header->attrib(C_LHSUBJ);
-    int i = sprintf(tmp, "%.*s", maxSubjWidth, mm.letterList->getSubject());
-    letterconv_in(tmp);
-    header->put(3, 8, tmp);
+    u8 = u8shown ? mm.letterList->getSubjectU8() : 0;
+    fieldcpy(tmp, u8 ? u8 : mm.letterList->getSubject(), maxSubjWidth, u8);
+    int i = putField(3, tmp, u8);
     header->clreol(3, i + 8);
 
     header->attrib(C_LHDATE);
@@ -574,7 +668,12 @@ void LetterWindow::oneLine(int i)
                 length = TAGLINE_LENGTH;
             strnzcpy(tagline1, &curr->text[4], length);
         }
-        length = text->put(i, 0, curr->text, curr->length);
+#ifdef MM_UTF8_OUT
+        if (chainUtf8)
+            length = text->putu8(i, 0, curr->text, curr->length);
+        else
+#endif
+            length = text->put(i, 0, curr->text, curr->length);
     } else {
         text->attrib(C_LTEXT);
         length = 0;
@@ -908,7 +1007,7 @@ void LetterWindow::write_to_file(FILE *fd)
 
     // write chain to file
 
-    MakeChain(80);
+    MakeChain(80, false, false);
     for (int i = 0; i < NumOfLines; i++)
         linelist[i]->out(fd);
     fputc('\n', fd);

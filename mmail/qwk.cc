@@ -8,6 +8,7 @@
 
 #include "qwk.h"
 #include "compress.h"
+#include "u8text.h"
 
 unsigned char *onecomp(unsigned char *p, char *dest, const char *comp)
 {
@@ -33,7 +34,9 @@ unsigned char *onecomp(unsigned char *p, char *dest, const char *comp)
 // value is UTF-8, so convert it to Latin-1; otherwise copy it as-is.
 static char *hdrField(const char *s, bool utf8)
 {
-    return utf8 ? utf8ToLatin1(s) : strdupplus(s);
+    char *t = strdupplus(s);
+
+    return utf8 ? u8toLatin1(t) : t;
 }
 
 // -----------------------------------------------------------------
@@ -437,10 +440,12 @@ letter_header *qwkpack::getNextLetter()
     const char *lsubj = q.subject, *lto = q.to, *lfrom = q.from;
     char *csubj = 0, *cto = 0, *cfrom = 0;
     int upVotes = 0, downVotes = 0;
+    bool utf8 = false;
+    const char *u8subj = 0, *u8to = 0, *u8from = 0;
 
     if (headers.has(pos)) {
         const char *u = headers.get(pos, "Utf8");
-        bool utf8 = u && !strcasecmp(u, "true");
+        utf8 = u && !strcasecmp(u, "true");
 
         const char *hsender = headers.get(pos, "Sender");
         const char *hrecip = headers.get(pos, "To");
@@ -452,6 +457,11 @@ letter_header *qwkpack::getNextLetter()
             lto = cto = hdrField(hrecip, utf8);
         if (hsubj)
             lsubj = csubj = hdrField(hsubj, utf8);
+        if (utf8) {
+            u8subj = hsubj;
+            u8to = hrecip;
+            u8from = hsender;
+        }
 
         // VOTING.DAT ballots name their target by message-ID, so a tally can
         // only be attached to a message whose HEADERS.DAT section has one.
@@ -461,8 +471,10 @@ letter_header *qwkpack::getNextLetter()
     // A poll is not written to HEADERS.DAT, so its record carries only the
     // 25-char subject; VOTING.DAT has the whole question.
     const char *psubj = votes.getPollSubject(pos);
-    if (psubj)
+    if (psubj) {
         lsubj = psubj;
+        u8subj = 0;
+    }
 
     char ddate[40];
     qwkDispDate(ddate, sizeof ddate, q.date);
@@ -478,8 +490,10 @@ letter_header *qwkpack::getNextLetter()
         na = lsubj + 1;
 
         ksubj = kludgeSubject(rawpos, q.msglen);
-        if (ksubj)
+        if (ksubj) {
             lsubj = ksubj;
+            u8subj = 0;
+        }
     }
 
     letter_header *newLetter = new letter_header(lsubj, lto, lfrom, ddate,
@@ -488,6 +502,9 @@ letter_header *qwkpack::getNextLetter()
         na.isSet ? na : nullNet, !(!(areas[areaID].attr & LATINCHAR)));
 
     newLetter->setVotes(upVotes, downVotes);
+    newLetter->setUtf8(utf8);
+    if (utf8)
+        newLetter->setUtf8Header(u8subj, u8to, u8from);
 
     delete[] cfrom;
     delete[] cto;

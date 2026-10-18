@@ -315,13 +315,14 @@ class letter_header
     read_class *readO;
     specific_driver *driver;
     char *subject, *to, *from, *date, *msgid, *newsgrps, *follow, *reply;
+    char *u8subject, *u8to, *u8from;   // for display; 0 unless UTF-8
     long replyTo;
     int LetterID, AreaID;
     bool privat, persfrom, persto;
     int length;
     long msgNum;
     net_address netAddr;
-    bool charset, qpenc;
+    bool charset, qpenc, utf8;
     int upVotes, downVotes;
  public:
     letter_header(const char *, const char *, const char *,
@@ -358,9 +359,15 @@ class letter_header
     bool isPersonal() const;
     bool isLatin() const;
     bool isQP() const;
+    bool isUtf8() const;
 
     void setLatin(bool);
     void setQP(bool);
+    void setUtf8(bool);
+    void setUtf8Header(const char *, const char *, const char *);
+    const char *getSubjectU8() const;
+    const char *getToU8() const;
+    const char *getFromU8() const;
     void setVotes(int, int);
     int getUpVotes() const;
     int getDownVotes() const;
@@ -412,6 +419,10 @@ class letter_list
     bool isPersonal() const;
     bool isLatin() const;
     bool isQP() const;
+    bool isUtf8() const;
+    const char *getSubjectU8() const;
+    const char *getToU8() const;
+    const char *getFromU8() const;
     int getUpVotes() const;
     int getDownVotes() const;
 

@@ -119,3 +119,9 @@ char *areaconv_out(char *buf)
     return (mm.areaList->isLatin() ^ isoConsole) ?
            charconv(buf, isoConsole ? CC_ISOTO437 : CC_437TOISO) : buf;
 }
+
+// Latin-1 text, whatever the area's own set, to the console's set.
+char *latinconv_in(char *buf)
+{
+    return isoConsole ? buf : charconv(buf, CC_ISOTO437);
+}

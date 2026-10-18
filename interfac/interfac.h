@@ -184,6 +184,7 @@ class Win
 #ifdef MM_UTF8_OUT
     void putwide(int, int, const chtype *, int, bool);
     void putwide(int, int, const unsigned char *, int, chtype, bool);
+    int putu8(int, int, const char *, int);
 #endif
     int attrib(chtype);
     int attrib(coltype);
@@ -222,6 +223,7 @@ class InfoWin : public ShadowedWin
     Win *info;
  public:
     char *lineBuf;
+    bool lineUtf8;      //lineBuf holds UTF-8: draw it with putu8()
 
     InfoWin(int, int, int, coltype, const char * = 0, coltype = C_SBACK,
             int = 3, int = 2);
@@ -470,6 +472,7 @@ class AreaListWindow : public ListWindow
 class LetterListWindow : public ListWindow
 {
     char format[LLIST_FORMAT_LEN], *topline;
+    int fromWidth, toWidth, subjWidth;  //the column widths in format
 
     int NumOfItems();
     void oneLine(int);
@@ -513,10 +516,12 @@ class LetterWindow
     int NumOfLines;
     int y;                //height of the window, set by MakeActive
     bool rot13, hidden;
+    bool chainUtf8;       //lines hold UTF-8, drawn with putu8()
     net_address NM;
     time_t lasttime;
 
     void lineCount();
+    int putField(int, char *, bool);
     void oneLine(int);
     void Move(int);
     char *netAdd(char *, size_t);
@@ -537,7 +542,7 @@ class LetterWindow
     void VoteMenu();
     bool Previous();
     void NextDown();
-    void MakeChain(int, bool = false);
+    void MakeChain(int, bool = false, bool = true);
     void MakeChainFixPos();
     void DrawFlags();
     void UpdateHeader();
