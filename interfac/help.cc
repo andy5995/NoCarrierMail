@@ -11,8 +11,7 @@
 #define ARRAY_SIZE(a) ((int) (sizeof (a) / sizeof (a)[0]))
 
 /* One table per screen, read by both renderers: the summary bar along the
-   bottom of the screen and the full list on F1. A {0, 0} entry is a spacer
-   holding the bar's three-column layout in step. */
+   bottom of the screen and the full list on F1. */
 
 static const helpitem hi_packetlist[] = {
     {"Q", "Quit"},
@@ -24,6 +23,7 @@ static const helpitem hi_packetlist[] = {
     {"G", "Go to directory"},
 
     {"^R", "reply dir"},
+    {"^P", "edit settings"},
     {"U", "Update list"},
     {"R", "Rename packet"},
 
@@ -49,6 +49,7 @@ static const helpitem hi_arealist[] = {
     {"U, Del", "Unsubscribe"},
 
     {"L", "all/subscribed/active"},
+    {"^P", "edit settings"},
     {"-", "prev non-empty"},
     {"+", "next non-empty"},
 
@@ -61,12 +62,13 @@ static const helpitem hi_letterlist[] = {
     {"$", "change sort type"},
 
     {"E", "Enter letter in area"},
-    {"^F", "Forward letter"},
+    {"^P", "edit settings"},
     {"S", "Save (all/marked)"},
 
     {"U", "Unread/read toggle"},
     {"M", "Mark/unmark"},
 
+    {"^F", "Forward letter"},
     {"A", "Addressbook"},
     {"^T", "Tagline editor"},
     {"F2, !", "make reply packet"},
@@ -85,7 +87,7 @@ static const helpitem hi_replylist[] = {
     {"^F", "Forward letter"},
     {"S", "Save (all/marked)"},
 
-    {0, 0},
+    {"^P", "edit settings"},
     {"^B", "Break into parts"},
 
     {"A", "Addressbook"},
@@ -111,6 +113,7 @@ static const helpitem hi_lettercommon[] = {
     {"+, Enter", "next letter"},
     {"Space", "page through area"},
     {"^Z", "command shell"},
+    {"^P", "edit settings"},
     {"Q", "back to letter list"},
     {"^X", "eXit " MM_NAME " now"}
 };
@@ -211,10 +214,6 @@ void helpBar(Win *w, int row, int rows, const int *colon, int ncol,
 
     for (int z = 0; z < n; z++) {
         const helpitem *it = helpAt(h, z);
-
-        if (!it->key)
-            continue;
-
         int c = z % ncol, y = row + z / ncol, x = colon[c];
 
         /* Stop a description a space short of the next column's key on this
@@ -223,8 +222,7 @@ void helpBar(Win *w, int row, int rows, const int *colon, int ncol,
         int room = -1;
         if (c < ncol - 1) {
             const helpitem *next = (z + 1 < n) ? helpAt(h, z + 1) : 0;
-            int nextx = colon[c + 1] -
-                        ((next && next->key) ? (int) strlen(next->key) : 0);
+            int nextx = colon[c + 1] - (next ? (int) strlen(next->key) : 0);
 
             room = nextx - 1 - (x + 2);
             if (room < 0)
@@ -276,7 +274,7 @@ void HelpWindow::newHelpMenu(const helplist &h)
         // far left as a two-character key allows. A wider key on this page
         // ("|, ^") moves it over, or the key is drawn off the edge.
         for (int z = base; z < end; z += 3)
-            if (h.items[z].key && ((int) strlen(h.items[z].key) > colon[0]))
+            if ((int) strlen(h.items[z].key) > colon[0])
                 colon[0] = strlen(h.items[z].key);
 
         // The list screens have no situational entries, so a page is a
@@ -306,12 +304,8 @@ Win *HelpWindow::buildFull(const helplist &h)
     const helpitem *item[maxitems];
     int z, n = 0, len, maxdesc = 0;
 
-    for (z = 0; (z < h.nitems + h.nmore) && (n < maxitems); z++) {
-        const helpitem *it = helpAt(h, z);
-
-        if (it->key)
-            item[n++] = it;
-    }
+    for (z = 0; (z < h.nitems + h.nmore) && (n < maxitems); z++)
+        item[n++] = helpAt(h, z);
 
     // Two more lines than the window itself, for the border and the shadow.
     int cols = ((n + 6) <= LINES) ? 1 : 2;

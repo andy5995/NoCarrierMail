@@ -48,10 +48,8 @@
 #define DEFUNNONE "xxuncompress"
 
 #ifdef DOSNAMES
-# define RCNAME "ncmail.rc"
 # define ADDRBOOK "address.bk"
 #else
-# define RCNAME ".ncmailrc"
 # define ADDRBOOK "addressbook"
 #endif
 
@@ -63,6 +61,10 @@ baseconfig::baseconfig()
 {
     seen = 0;
     unknownKeyword = false;
+    quiet = false;
+    old = 0;
+    *unknownName = '\0';
+    *unknownSeen = '\0';
 }
 
 baseconfig::~baseconfig()
@@ -123,6 +125,8 @@ bool baseconfig::parseConfig(const char *configFileName)
     for (int c = 0; c < configItemNum; c++)
         seen[c] = false;
     unknownKeyword = false;
+    *unknownName = '\0';
+    *unknownSeen = '\0';
 
     configFile = fopen(configFileName, "rt");
     if (configFile) {
@@ -290,13 +294,32 @@ void baseconfig::newConfig(const char *configname)
         pauseError("Error writing config file");
 }
 
+// Whether the last parseConfig() met this unknown keyword.
+bool baseconfig::hadUnknown(const char *name) const
+{
+    size_t len = strlen(name);
+
+    for (const char *p = unknownSeen; *p; p = strchr(p, '\n') + 1)
+        if (!strncmp(p, name, len) && (p[len] == '\n'))
+            return true;
+    return false;
+}
+
 void baseconfig::processOneByName(const char *resName, const char *resValue)
 {
     int c = findKeyword(resName, (int) strlen(resName));
 
     if (c < 0) {
+        if (!*unknownName && !(old && old->hadUnknown(resName)))
+            strnzcpy(unknownName, resName, sizeof unknownName - 1);
+
+        size_t used = strlen(unknownSeen), len = strlen(resName);
+        if (used + len + 2 <= sizeof unknownSeen)
+            sprintf(unknownSeen + used, "%s\n", resName);
+
         unknownKeyword = true;
-        printf("Unrecognized keyword: %s\n", resName);
+        if (!quiet)
+            printf("Unrecognized keyword: %s\n", resName);
     } else {
         processOne(c, resValue);
         if (seen)
@@ -471,11 +494,121 @@ resource::resource()
     }
     set(outCharset, "iso-8859-1");
 
+    for (c = 0; c < noOfResources; c++)
+        edited[c] = false;
+
     pathsReady = false;
 
     initinit();
     homeInit();
     mmHomeInit();
+}
+
+// Full path of the settings file; the caller deletes it.
+char *resource::configName() const
+{
+    return fullpath(resourceData[homeDir], RCNAME);
+}
+
+// Run the editor on the settings file, then read back what it holds.
+void resource::runEditor(const char *configFileName)
+{
+    mysystem2(resourceData[editor], configFileName);
+    parseConfig(configFileName);
+}
+
+/* Keywords whose new value waits for the next start when changed from inside
+   a session: the directories and files the session has open or has loaded,
+   what is set up when curses starts, and the sort orders, which the S and $
+   keys change for the session. Changing PacketDir or ReplyDir under an open
+   packet would send its read status or replies somewhere else. */
+
+static const int heldKeys[] = {
+    mmHomeDir, PacketDir, ReplyDir, SaveDir, TempDir, AddressFile,
+    TaglineFile, ColorFile, UseColors, Transparency, Mouse, PacketSort,
+    LetterSort
+};
+
+static bool isHeld(int id)
+{
+    for (unsigned c = 0; c < sizeof heldKeys / sizeof *heldKeys; c++)
+        if (heldKeys[c] == id)
+            return true;
+    return false;
+}
+
+// Whether keyword id has the same value here as in other.
+bool resource::sameAs(const resource &other, int id) const
+{
+    if (id >= noOfStrings)
+        return resourceInt[id - noOfStrings] ==
+               other.resourceInt[id - noOfStrings];
+
+    const char *a = resourceData[id], *b = other.resourceData[id];
+
+    return (!a || !b) ? (a == b) : !strcmp(a, b);
+}
+
+/* The same from inside a session (CTRL-P). The file is read into two scratch
+   objects, once before the edit and once after, and only the keywords that
+   differ between them are copied in here. Everything else -- the C and I
+   toggles, the directory the packet list is in, a value given on the command
+   line -- is left exactly as the session has it, pointers included, so
+   nothing holding a get() result is pulled out from under it.
+
+   A changed keyword in heldKeys[] is not copied. Returns how many of those
+   now differ from the session's value, and names the first in 'held', so
+   the caller can say they apply next start; a change that only puts back
+   the session's value is not worth a notice. */
+
+int resource::editConfig(const char *&held)
+{
+    char *configFileName = configName();
+    resource *before = new resource, *after = new resource;
+    int deferred = 0;
+
+    held = 0;
+    before->quiet = after->quiet = true;
+    after->old = before;
+    before->parseConfig(configFileName);
+    mysystem2(resourceData[editor], configFileName);
+    after->parseConfig(configFileName);
+    delete[] configFileName;
+    strcpy(unknownName, after->unknownName);
+
+    for (int c = 0; c < configItemNum; c++) {
+        int id = startUp[c];
+        bool changed = !after->sameAs(*before, id);
+
+        edited[id] = changed && !isHeld(id);
+
+        if (edited[id]) {
+            if (id < noOfStrings)
+                set(id, after->resourceData[id]);
+            else
+                set(id, after->resourceInt[id - noOfStrings]);
+        } else
+            if (changed && !after->sameAs(*this, id))
+                if (!deferred++)
+                    held = names[c];
+    }
+
+    delete before;
+    delete after;
+
+    return deferred;
+}
+
+bool resource::wasEdited(int id) const
+{
+    return edited[id];
+}
+
+// A keyword this version does not know that the last editConfig() added to
+// the file, or 0.
+const char *resource::editUnknown() const
+{
+    return *unknownName ? unknownName : 0;
 }
 
 /* Everything here writes to the disk or asks the user something, so it is kept
@@ -485,12 +618,12 @@ resource::resource()
 
 void resource::init()
 {
-    char *configFileName = fullpath(resourceData[homeDir], RCNAME);
+    char *configFileName = configName();
 
     if (parseConfig(configFileName)) {
-        bool created = updateConfig(configFileName);
-
         printf("\nWelcome to " MM_NAME " v" MM_VERNUM "!\n\n");
+
+        bool created = updateConfig(configFileName);
 
         if (created)
             printf("A new " RCNAME " has been written, holding the default "
@@ -507,10 +640,8 @@ void resource::init()
 
         char inp = fgetc(stdin);
 
-        if (toupper(inp) == 'Y') {
-            mysystem2(resourceData[editor], configFileName);
-            parseConfig(configFileName);
-        }
+        if (toupper(inp) == 'Y')
+            runEditor(configFileName);
     }
 
     delete[] configFileName;

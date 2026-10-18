@@ -568,7 +568,6 @@ class LetterWindow
 };
 
 // One key and what it does, as listed in the help bar and the F1 window.
-// A {0, 0} entry is a spacer holding the bar's column layout in step.
 struct helpitem {
     const char *key;
     const char *desc;
@@ -770,6 +769,7 @@ class Interface
     statetype prevactive();
     void addressbook(bool = false);
     bool Tagwin();
+    void editSettings();
     int ansiLoop(letter_body *, const char *, bool);
     int ansiFile(file_header *, const char *, bool);
     void ansiList(file_header **, bool);

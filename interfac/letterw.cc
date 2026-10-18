@@ -639,7 +639,7 @@ void LetterWindow::DrawStat()
 
 void LetterWindow::TimeUpdate()
 {
-    static int mode = mm.res.getInt(ClockMode);
+    int mode = mm.res.getInt(ClockMode);
     char tmp[6];
     time_t now = time(0);
 

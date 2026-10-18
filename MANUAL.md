@@ -53,6 +53,15 @@ tagline window, reply-area picker, letter window and ANSI viewer, and it
 works with "ExpertMode" turned on, when there is no summary at the bottom
 at all.
 
+CTRL-P, in the packet list, area list, letter list or letter window, opens
+your settings file (.ncmailrc) in your editor, and reads it again when you
+leave the editor. Only the settings you changed take effect, so anything
+you set for this session (with the C key, say, or on the command line)
+stays as it was. A few settings, mostly directories and files, cannot
+change while the program runs; if you change one, NoCarrierMail names it
+and it applies the next time you start. ExpertMode is not turned off if
+the screen is too short for the help at the bottom.
+
 The basic navigation keys, available throughout the program, consist of
 the standard cursor and keypad keys, with Enter to select. For terminals
 without full support for these keys, aliases are available for some of
@@ -138,8 +147,9 @@ is not, however, necessary for packet names.)
 
 Two options are given on their own, and make the program print something
 and stop. `--version`, or `-V`, shows the version, the curses library in
-use, and whether this build and your terminal can show Unicode
-characters. `--help`, or `-h`, shows a short usage message.
+use, whether this build and your terminal can show Unicode characters,
+and where your settings file is. `--help`, or `-h`, shows a short usage
+message.
 
 Packet names may be specified on the command line, bypassing the packet
 menu. If multiple packets are named, they'll be opened sequentially. If

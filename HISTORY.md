@@ -4,6 +4,10 @@ Revision History
 (in-progress)
 -------------
 
+- CTRL-P opens your settings file in your editor from inside the program.
+  Most settings you change there take effect when you leave the editor; the
+  manual lists the few that wait for the next start. `ncmail --version` now
+  shows where the file is.
 - UseLynxNav, BeepOnPers and LetterSort in the settings file were ignored:
   the list and letter windows read them before the file was loaded, so they
   always got the defaults.

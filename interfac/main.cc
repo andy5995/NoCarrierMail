@@ -106,6 +106,10 @@ static bool loneOption(const char *arg)
         printf(", this terminal is %s\n",
                utf8Console ? "UTF-8" : "single byte");
 
+        char *rc = mm.res.configName();
+        printf("settings: %s\n", rc);
+        delete[] rc;
+
         return true;
     }
 

@@ -650,7 +650,11 @@ void LetterWindow::EditLetter(bool forwarding)
 
 bool LetterWindow::SplitLetter(int lines)
 {
-    static int eachmax = mm.res.getInt(MaxLines);
+    // The size typed last time, until MaxLines itself changes (CTRL-P).
+    static int eachmax, setting = -1;
+
+    if (mm.res.getInt(MaxLines) != setting)
+        eachmax = setting = mm.res.getInt(MaxLines);
 
     if (!lines) {
         char maxlinesA[55];

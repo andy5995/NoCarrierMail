@@ -608,7 +608,7 @@ void Interface::kill_letter()
 
 void Interface::create_reply_packet()
 {
-    static int lines = mm.res.getInt(MaxLines);
+    int lines = mm.res.getInt(MaxLines);
     if (lines)
         letterwindow.SplitAll(lines);
 
@@ -638,6 +638,59 @@ void Interface::addressbook(bool NoEnter)
     addrparm = NoEnter;
     changestate(address);
     KeyHandle();
+}
+
+/* CTRL-P: edit the settings file. Only the keywords changed in the editor
+   take effect (resource::editConfig()), except those in heldKeys[] in
+   resource.cc, which wait for the next start. Most settings are read where
+   they are used. Charset is copied at startup, so it is picked up here, and
+   the background is rebuilt as a resize does, since ExpertMode and BackFill
+   are drawn into it. */
+
+void Interface::editSettings()
+{
+    const char *held;
+    int deferred = mm.res.editConfig(held);
+
+    if (mm.res.wasEdited(Charset)) {
+        isoConsole = mm.res.getInt(Charset);
+#ifdef HAS_CONSOLE_CP
+        winConsoleSetCP(isoConsole);
+#endif
+    }
+
+    /* Turning ExpertMode off needs more lines, and screen_init() exits when
+       there are too few -- with replies possibly unsaved. Keep it on. */
+    bool tooShort = false;
+    if (mm.res.wasEdited(ExpertMode) && !mm.res.getInt(ExpertMode) &&
+        (LINES < MINHINORM)) {
+        mm.res.set(ExpertMode, 1);
+        tooShort = true;
+    }
+    height_min = mm.res.getInt(ExpertMode) ? MINHIEXPERT : MINHINORM;
+
+    oldstate(state);
+    delete screen;
+    screen_init();
+    newstate(state);
+
+    const char *unknown = mm.res.editUnknown();
+
+    char msg[100];
+
+    if (tooShort)
+        nonFatalError("The screen is too short to turn ExpertMode off");
+    else if (unknown) {
+        sprintf(msg, "Unrecognized keyword ignored: %s", unknown);
+        nonFatalError(msg);
+    } else if (deferred) {
+        if (deferred == 1)
+            sprintf(msg, "%.40s takes effect next start", held);
+        else
+            sprintf(msg, "%.40s and %d more take effect next start", held,
+                    deferred - 1);
+        nonFatalError(msg);
+    }
 }
 
 bool Interface::Tagwin()
@@ -959,6 +1012,16 @@ void Interface::KeyHandle()  // Main loop
                 case letterlist:
                 case letter:
                     Tagwin();
+                default:;
+                }
+                break;
+            case 16:            // ^P
+                switch (state) {
+                case packetlist:
+                case arealist:
+                case letterlist:
+                case letter:
+                    editSettings();
                 default:;
                 }
                 break;

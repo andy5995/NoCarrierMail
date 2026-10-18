@@ -44,6 +44,12 @@ class baseconfig
 
     bool *seen;             //keyword was present in the file we parsed
     bool unknownKeyword;    //file had a keyword this version does not know
+    bool quiet;             //don't print: curses has the screen
+    const baseconfig *old;  //unknown keywords this one had are not new
+    char unknownName[32];   //the first new unknown keyword
+    char unknownSeen[256];  //every unknown keyword, each followed by \n
+
+    bool hadUnknown(const char *) const;
 
     int findKeyword(const char *, int) const;
     bool parseConfig(const char *);
@@ -57,6 +63,13 @@ class baseconfig
     virtual ~baseconfig();
 };
 
+// The settings file, in the home directory (homeDir).
+#ifdef DOSNAMES
+# define RCNAME "ncmail.rc"
+#else
+# define RCNAME ".ncmailrc"
+#endif
+
 class resource : public baseconfig
 {
     static const char *rc_names[], *rc_intro[], *rc_comments[];
@@ -65,6 +78,7 @@ class resource : public baseconfig
     char *resourceData[noOfStrings];
     int resourceInt[(int)noOfResources - (int)noOfStrings];
     bool pathsReady;
+    bool edited[noOfResources];     // changed by the last editConfig()
 
     void homeInit();
     void mmEachInit(int, const char *);
@@ -75,10 +89,16 @@ class resource : public baseconfig
     const char *configLineOut(int);
     bool checkPath(const char *, bool);
     bool verifyPaths();
+    void runEditor(const char *);
+    bool sameAs(const resource &, int) const;
  public:
     resource();
     ~resource();
     void init();
+    int editConfig(const char *&);
+    bool wasEdited(int) const;
+    const char *editUnknown() const;
+    char *configName() const;
     const char *get(int) const;
     int getInt(int) const;
     void set(int, const char *);
