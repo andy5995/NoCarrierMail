@@ -10,6 +10,8 @@ Revision History
   shows where the file is.
 - A new settings file starts by asking which editor to use, instead of
   leaving you in vi when EDITOR is not set.
+- F2 now says where the reply packet was saved and how many replies it holds,
+  or that there were no replies to save. (#46)
 - A new letter opens the editor on an empty file instead of a missing one, so
   Notepad no longer asks whether to create it. (#47)
 - UseLynxNav, BeepOnPers and LetterSort in the settings file were ignored:

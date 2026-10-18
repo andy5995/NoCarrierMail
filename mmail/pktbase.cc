@@ -535,6 +535,11 @@ bool pktreply::checkForReplies()
     return replyExists;
 }
 
+const char *pktreply::getReplyName()
+{
+    return replyPacketName;
+}
+
 void pktreply::init()
 {
     if (replyExists) {

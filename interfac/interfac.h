@@ -738,7 +738,7 @@ class Interface
     void screen_init();
     const char *pkterrmsg(pktstatus);
     void newpacket();
-    void create_reply_packet();
+    void create_reply_packet(bool = false);
     void save_read();
     int ansiCommon();
     void searchNext();

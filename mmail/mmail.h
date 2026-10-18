@@ -530,6 +530,7 @@ class reply_driver : public specific_driver
     virtual void deleteReplies() = 0;
     virtual bool getOffConfig() = 0;
     virtual bool makeOffConfig() = 0;
+    virtual const char *getReplyName() = 0;
 };
 
 // Letter sort type flag

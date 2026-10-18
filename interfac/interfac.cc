@@ -606,7 +606,7 @@ void Interface::kill_letter()
         redraw();
 }
 
-void Interface::create_reply_packet()
+void Interface::create_reply_packet(bool tell)
 {
     int lines = mm.res.getInt(MaxLines);
     if (lines)
@@ -615,9 +615,34 @@ void Interface::create_reply_packet()
     ReportWindow("Saving replies...");
     bool result = mm.makeReply();
 
-    if (result)
+    if (result) {
         unsaved_reply = false;
-    else
+        if (tell) {
+            char msg[256];
+
+            if (mm.checkForReplies()) {
+                int n = mm.reply->getNoOfLetters();
+                char *path = fullpath(mm.res.get(ReplyDir),
+                                      mm.reply->getReplyName());
+
+                int len = sprintf(msg, "Saved %d %s to ", n,
+                                  (n == 1) ? "reply" : "replies");
+                int room = COLS - 6 - len, plen = strlen(path);
+                if (room > 200)
+                    room = 200;
+
+                // keep the end of a long path; the file name matters most
+                if (plen > room && room > 3)
+                    sprintf(msg + len, "...%s", path + plen - (room - 3));
+                else
+                    sprintf(msg + len, "%.200s", path);
+                delete[] path;
+            } else
+                strcpy(msg, "No replies to save");
+            redraw();
+            nonFatalError(msg);
+        }
+    } else
         nonFatalError("Warning: Unable to create reply packet!");
 }
 
@@ -1075,7 +1100,7 @@ void Interface::KeyHandle()  // Main loop
                     if (!mm.checkForReplies() || WarningWindow(
                 "This will overwrite the existing reply packet. Continue?")) {
                         redraw();
-                        create_reply_packet();
+                        create_reply_packet(true);
                     }
                     redraw();
                 default:;
