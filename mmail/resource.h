@@ -44,6 +44,7 @@ class baseconfig
 
     bool *seen;             //keyword was present in the file we parsed
     bool unknownKeyword;    //file had a keyword this version does not know
+    bool fileFound;         //the last parseConfig() could open its file
     bool quiet;             //don't print: curses has the screen
     const baseconfig *old;  //unknown keywords this one had are not new
     char unknownName[32];   //the first new unknown keyword
@@ -90,6 +91,7 @@ class resource : public baseconfig
     bool checkPath(const char *, bool);
     bool verifyPaths();
     void runEditor(const char *);
+    void askEditor();
     bool sameAs(const resource &, int) const;
  public:
     resource();

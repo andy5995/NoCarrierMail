@@ -594,6 +594,10 @@ Here are the keywords and their functions:
   the editor that's (almost) guaranteed to be available, for a given OS
   (although the Unix "EDITOR" environment variable is checked first),
   and is in no way a preferred editor; you can and should change it.
+  When NoCarrierMail writes a new .ncmailrc, it asks for this first.
+  An editor that opens its own window has to keep running until you
+  close it, or NoCarrierMail reads the file back before you have
+  written it; some need an option for that, such as "code --wait".
 
 `Viewer`
   The external program used by the "L" key in the letter window to view

@@ -61,6 +61,7 @@ baseconfig::baseconfig()
 {
     seen = 0;
     unknownKeyword = false;
+    fileFound = false;
     quiet = false;
     old = 0;
     *unknownName = '\0';
@@ -129,6 +130,7 @@ bool baseconfig::parseConfig(const char *configFileName)
     *unknownSeen = '\0';
 
     configFile = fopen(configFileName, "rt");
+    fileFound = (configFile != 0);
     if (configFile) {
         while (myfgets(buffer, sizeof buffer, configFile)) {
             int namelen;
@@ -611,6 +613,35 @@ const char *resource::editUnknown() const
     return *unknownName ? unknownName : 0;
 }
 
+/* A new settings file: ask for the editor before writing it. It is the one
+   setting needed to change all the others, and the fallback where EDITOR is
+   unset (vi on Unix) is one plenty of people cannot get back out of. */
+
+void resource::askEditor()
+{
+    char buf[256];
+
+    printf("Which editor should " MM_NAME " use for letters and settings?\n"
+           "A windowed editor must keep running until you close it, for\n"
+           "example \"code --wait\". Press Enter to keep the one shown.\n\n"
+           "Editor [%s]: ", resourceData[editor]);
+    fflush(stdout);
+
+    // EOF (stdin is not a terminal) keeps the default too.
+    if (fgets(buf, sizeof buf, stdin)) {
+        if (!strchr(buf, '\n')) {
+            // Longer than buf: drop the rest, or it answers the next prompt.
+            int ch;
+            while (((ch = getchar()) != '\n') && (ch != EOF))
+                ;
+        }
+        buf[strcspn(buf, "\r\n")] = '\0';
+        if (*buf)
+            set(editor, buf);
+    }
+    printf("\n");
+}
+
 /* Everything here writes to the disk or asks the user something, so it is kept
    out of the constructor: this object is a global, so the constructor runs
    before main() has had a chance to see --version or --help, and those must not
@@ -623,12 +654,15 @@ void resource::init()
     if (parseConfig(configFileName)) {
         printf("\nWelcome to " MM_NAME " v" MM_VERNUM "!\n\n");
 
+        if (!fileFound)
+            askEditor();
+
         bool created = updateConfig(configFileName);
 
         if (created)
-            printf("A new " RCNAME " has been written, holding the default "
-                   "values. If you continue\nnow, " MM_NAME " will use "
-                   "those. To edit it first, say 'Y' at the prompt.\n\n");
+            printf("A new " RCNAME " has been written, with default values "
+                   "for everything else.\nTo look it over first, say 'Y' at "
+                   "the prompt.\n\n");
         else
             printf("Your " RCNAME " has been updated in place. Keywords it "
                    "did not have were\nadded with their default values, and "
