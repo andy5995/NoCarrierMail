@@ -6,10 +6,10 @@ project(
     meson_version: '>= 0.59.0',
     default_options: [
         'warning_level=3',
-        # macOS ships a curses too old to have the wide API, so the UTF-8
-        # drawing is compiled out there. Look in both Homebrew prefixes
-        # (arm64 and Intel) for a "brew install ncurses" that does have it.
-        # The paths are simply absent elsewhere.
+        # Look in both Homebrew prefixes (arm64 and Intel) for a "brew install
+        # ncurses", which is keg-only. macOS's own curses has the wide API the
+        # UTF-8 drawing needs as well; this picks the newer one when it is
+        # there. The paths are simply absent elsewhere.
         'pkg_config_path=/opt/homebrew/opt/ncurses/lib/pkgconfig,/usr/local/opt/ncurses/lib/pkgconfig',
     ],
 )

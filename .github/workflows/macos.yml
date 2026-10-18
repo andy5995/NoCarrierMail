@@ -32,9 +32,10 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    # Homebrew's ncurses has the wide API that the system one lacks, which is
-    # what the UTF-8 drawing needs. meson finds it through the pkg_config_path
-    # set in meson.build.
+    # Build against Homebrew's ncurses, the newer of the two; the package job
+    # below builds against the system one. Both have the wide API the UTF-8
+    # drawing needs. meson finds Homebrew's through the pkg_config_path set in
+    # meson.build.
     - name: Install dependencies
       run: brew install meson ninja ncurses
 
