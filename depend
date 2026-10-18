@@ -139,3 +139,4 @@ qheader.$(O): mmail/qheader.cc mmail/qwk.h mmail/pktbase.h mmail/mmail.h \
   mmail/../interfac/mysystem.h mmail/qwkhdr.h mmail/qwkvote.h
 qwkhdr.$(O): mmail/qwkhdr.cc mmail/qwkhdr.h mmail/misc.h
 qwkvote.$(O): mmail/qwkvote.cc mmail/qwkvote.h mmail/qwkhdr.h mmail/misc.h
+u8text.$(O): mmail/u8text.cc mmail/u8text.h

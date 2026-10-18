@@ -137,6 +137,7 @@ ncmail_src = files(
     'mmail/read.cc',
     'mmail/resource.cc',
     'mmail/soup.cc',
+    'mmail/u8text.cc',
 )
 
 interfac_src = files(
@@ -196,5 +197,6 @@ if get_option('tests')
     mm_qwkhdr_src = files('mmail/qwkhdr.cc')
     mm_qwkvote_src = files('mmail/qwkvote.cc')
     mm_qheader_src = files('mmail/qheader.cc')
+    mm_u8text_src = files('mmail/u8text.cc')
     subdir('tests')
 endif
