@@ -10,6 +10,8 @@ Revision History
   shows where the file is.
 - A new settings file starts by asking which editor to use, instead of
   leaving you in vi when EDITOR is not set.
+- A new letter opens the editor on an empty file instead of a missing one, so
+  Notepad no longer asks whether to create it. (#47)
 - UseLynxNav, BeepOnPers and LetterSort in the settings file were ignored:
   the list and letter windows read them before the file was loaded, so they
   always got the defaults.

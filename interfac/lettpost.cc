@@ -384,13 +384,13 @@ void LetterWindow::EnterLetter(int replyto_area, char key)
 
     char *reply_filename = mytmpnam();
 
-    // Quote the old text
+    // Quote the old text; a new letter still gets an empty file, so the
+    // editor doesn't ask whether to create it
 
-    if (key != 'E') {
-        reply = fopen(reply_filename, "wt");
+    reply = fopen(reply_filename, "wt");
+    if (key != 'E')
         QuoteText(reply);
-        fclose(reply);
-    }
+    fclose(reply);
     fileStat.init(reply_filename);
     oldtime = fileStat.fdate();
 
