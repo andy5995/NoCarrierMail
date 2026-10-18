@@ -199,13 +199,8 @@ void LetterWindow::MakeChain(int columns, bool rejoin, bool screen)
     /* A UTF-8 body stays UTF-8 only on its way to a UTF-8 screen. Quoting
        and saving want the single-byte text the rest of the program uses, as
        does any other console, so there it is folded to Latin-1. */
-#ifdef MM_UTF8_OUT
-    const bool wideout = utf8Console;
-#else
-    const bool wideout = false;
-#endif
     bool u8body = mm.letterList->isUtf8();
-    chainUtf8 = u8body && screen && wideout;
+    chainUtf8 = screen && letterUtf8();
 
     while (msgBody) {
 #ifdef BOGUS_WARNING
@@ -337,19 +332,8 @@ void LetterWindow::MakeChain(int columns, bool rejoin, bool screen)
                         // A UTF-8 character, with any marks combining
                         // with it, moves as one; a wide one that would
                         // only half fit starts the next line instead.
-                        // Reading 4 bytes is safe: a NUL ends a sequence.
                         if (chainUtf8) {
-                            unsigned long cp;
-
-                            n = u8decode(src, 4, &cp);
-                            w = u8cpWidth(cp);
-                            while (src[n] & 0x80) {
-                                int m = u8decode(src + n, 4, &cp);
-
-                                if (u8cpWidth(cp))
-                                    break;
-                                n += m;
-                            }
+                            n = u8char(src, -1, &w);
                             if (cols && (cols + w > maxcol)) {
                                 full = true;
                                 break;
@@ -472,15 +456,17 @@ char *LetterWindow::netAdd(char *tmp, size_t room)
     return tmp;
 }
 
-/* Copy a header field into tmp, at most maxcols columns of it, and return
-   the end. A UTF-8 field is cut by columns without splitting a character. */
+/* Copy a header field into tmp (size bytes), at most maxcols columns of it,
+   and return the end. A UTF-8 field is cut by columns without splitting a
+   character. */
 
-static char *fieldcpy(char *tmp, const char *s, int maxcols, bool u8)
+static char *fieldcpy(char *tmp, int size, const char *s, int maxcols,
+                      bool u8)
 {
     if (!u8)
         return strnzcpy(tmp, s, maxcols);
 
-    int n = u8fit(s, -1, maxcols, 255, true);
+    int n = u8fit(s, -1, maxcols, size - 1, true);
 
     memcpy(tmp, s, n);
     tmp[n] = '\0';
@@ -571,27 +557,22 @@ void LetterWindow::UpdateHeader()
         mm.areaList->gotoArea(mm.letterList->getAreaID());
 
     // UTF-8 fields are shown as they are when the screen can take them.
-#ifdef MM_UTF8_OUT
-    const bool u8shown = utf8Console && mm.letterList->isUtf8();
-#else
-    const bool u8shown = false;
-#endif
-    const char *u8 = u8shown ? mm.letterList->getFromU8() : 0;
+    bool u8 = letterUtf8();
 
     header->attrib(C_LHFROM);
-    p = fieldcpy(tmp, u8 ? u8 : mm.letterList->getFrom(), maxToFromWidth,
-                 u8);
+    p = fieldcpy(tmp, sizeof tmp, u8 ? mm.letterList->getFromU8() :
+                 mm.letterList->getFrom(), maxToFromWidth, u8);
     if (mm.areaList->isEmail())
         netAdd(p, sizeof tmp - (p - tmp));
     putField(1, tmp, u8);
 
     header->attrib(C_LHTO);
-    u8 = 0;
+    bool u8to = false;
     if (mm.areaList->hasTo()) {
-        u8 = u8shown ? mm.letterList->getToU8() : 0;
-        p = (char *) (u8 ? u8 : mm.letterList->getTo());
+        u8to = u8;
+        p = (char *) (u8 ? mm.letterList->getToU8() : mm.letterList->getTo());
         if (*p) {
-            p = fieldcpy(tmp, p, maxToFromWidth, u8);
+            p = fieldcpy(tmp, sizeof tmp, p, maxToFromWidth, u8);
             if (mm.areaList->isReplyArea())
                 if (p != tmp)
                     netAdd(p, sizeof tmp - (p - tmp));
@@ -601,11 +582,11 @@ void LetterWindow::UpdateHeader()
         strnzcpy(tmp, (const char *) mm.letterList->getNetAddr(),
                  maxToFromWidth);
 
-    putField(2, tmp, u8);
+    putField(2, tmp, u8to);
 
     header->attrib(C_LHSUBJ);
-    u8 = u8shown ? mm.letterList->getSubjectU8() : 0;
-    fieldcpy(tmp, u8 ? u8 : mm.letterList->getSubject(), maxSubjWidth, u8);
+    fieldcpy(tmp, sizeof tmp, u8 ? mm.letterList->getSubjectU8() :
+             mm.letterList->getSubject(), maxSubjWidth, u8);
     int i = putField(3, tmp, u8);
     header->clreol(3, i + 8);
 
@@ -664,9 +645,21 @@ void LetterWindow::oneLine(int i)
 
         if (Tagline == curr->attr) {
             length = curr->length - 4;
-            if (length > TAGLINE_LENGTH)
-                length = TAGLINE_LENGTH;
-            strnzcpy(tagline1, &curr->text[4], length);
+            if (chainUtf8) {
+                // kept single-byte, as on any other console
+                char t[TAGLINE_LENGTH * U8COLBYTES + 1];
+                int n = u8fit(&curr->text[4], length, TAGLINE_LENGTH,
+                              sizeof t - 1, true);
+
+                memcpy(t, &curr->text[4], n);
+                t[n] = '\0';
+                latinconv_in(u8toLatin1(t));
+                strnzcpy(tagline1, t, TAGLINE_LENGTH);
+            } else {
+                if (length > TAGLINE_LENGTH)
+                    length = TAGLINE_LENGTH;
+                strnzcpy(tagline1, &curr->text[4], length);
+            }
         }
 #ifdef MM_UTF8_OUT
         if (chainUtf8)

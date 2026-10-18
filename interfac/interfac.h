@@ -65,10 +65,8 @@ extern "C" {
 
 #define ANSIWIDTH 80
 
-// Size of the letter-list printf format string (and the header derived from
-// it). Big enough for the compiler's worst case: three "%-N.Ns" fields whose
-// int widths could each print as 11 digits.
-#define LLIST_FORMAT_LEN 96
+// Bytes a column of UTF-8 text is given room for in a row buffer.
+#define U8COLBYTES 4
 #ifdef VANITY_PLATE
 # define MINHINORM 19
 # define MINHIEXPERT 17
@@ -471,8 +469,8 @@ class AreaListWindow : public ListWindow
 
 class LetterListWindow : public ListWindow
 {
-    char format[LLIST_FORMAT_LEN], *topline;
-    int fromWidth, toWidth, subjWidth;  //the column widths in format
+    char *topline;
+    int fromWidth, toWidth, subjWidth;  //column widths, set by setFormat
 
     int NumOfItems();
     void oneLine(int);

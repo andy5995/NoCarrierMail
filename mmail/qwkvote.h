@@ -99,15 +99,19 @@ class qwkVoting {
     int getNoOfPolls() const;
     bool isPoll(unsigned long offset) const;
 
+    // Both accessors return a newly-allocated string (caller deletes[] it).
+    // A poll flagged Utf8=true is converted to Latin-1 when 'latin' is set,
+    // else to CP437, to match the area the poll is in.
+
     // The full question. A poll is not written to HEADERS.DAT, so its record
     // in MESSAGES.DAT has only the 25-char subject field. Returns 0 if no
     // poll sits at that offset, or if it named no subject.
-    const char *getPollSubject(unsigned long offset) const;
+    char *getPollSubject(unsigned long offset, bool latin) const;
 
     // The poll's question, answers and vote counts, rendered for display as
-    // the body of the otherwise empty poll message. Returns a newly-allocated
-    // string (caller deletes[] it), or 0 if no poll sits at that offset.
-    char *getPollText(unsigned long offset) const;
+    // the body of the otherwise empty poll message. Returns 0 if no poll sits
+    // at that offset.
+    char *getPollText(unsigned long offset, bool latin) const;
 };
 
 // Format a local timestamp the way Synchronet's VOTING.DAT expects:

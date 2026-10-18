@@ -191,7 +191,7 @@ int Win::put(int y, int x, const char *z, int len)
         // wide string is drawn with the colors the caller asked for.
         for (int i = 0; i < counter; i++) {
             unsigned char c = buffer[i] & A_CHARTEXT;
-            wbuffer[i] = isoConsole ? (wchar_t) c : cp437_to_uni[c];
+            wbuffer[i] = isoConsole ? (wchar_t) c : (wchar_t) cp437_to_uni[c];
         }
         wbuffer[counter] = L'\0';
         mvwaddnwstr(win, y, x, wbuffer, counter);
@@ -213,7 +213,7 @@ static void setwidecell(cchar_t *dest, chtype src, bool latin)
     unsigned char c = src & A_CHARTEXT;
     wchar_t w[2];
 
-    w[0] = latin ? (wchar_t) c : cp437_to_uni[c];
+    w[0] = latin ? (wchar_t) c : (wchar_t) cp437_to_uni[c];
     w[1] = L'\0';
 
     setcchar(dest, w, (attr_t) (src & ~(A_CHARTEXT | A_COLOR | A_ALTCHARSET)),
@@ -264,7 +264,7 @@ int Win::putu8(int y, int x, const char *z, int len)
     while ((pos < len) && z[pos] && (n < bufwidth)) {
         unsigned long cp;
         int used = u8decode(z + pos, len - pos, &cp);
-        int w = u8cpWidth(cp);
+        int w = u8cpWidth(cp), pad = 0;
 
         pos += used;
         if (cp == '\t') {
@@ -281,8 +281,12 @@ int Win::putu8(int y, int x, const char *z, int len)
         else if ((cp > 127) && (cp < 160))
             cp = '?';
         else if ((sizeof(wchar_t) < 4) && (cp > 0xFFFF)) {
-            cp = 0xFFFD;        // no surrogate pairs here
-            w = 1;
+            // No surrogate pairs here. U+FFFD stands in, padded to the
+            // width the character was measured at, so the line stays put.
+            if (!w)
+                continue;
+            cp = 0xFFFD;
+            pad = w - 1;
         }
 
         if (cols + w > limit)
@@ -290,6 +294,8 @@ int Win::putu8(int y, int x, const char *z, int len)
         if (!w && !n)           // nothing for a mark to combine with
             continue;
         wbuffer[n++] = (wchar_t) cp;
+        while (pad-- && (n < bufwidth))
+            wbuffer[n++] = L' ';
         cols += w;
     }
     wbuffer[n] = L'\0';
@@ -749,8 +755,8 @@ InfoWin::InfoWin(int height, int width, int topline, coltype backg,
                  const char *title, coltype titleAttrib, int bottx, int topx) :
     ShadowedWin(height, width, topline, backg, title, titleAttrib)
 {
-    // room for a row of UTF-8, at up to 4 bytes a column
-    lineBuf = new char[COLS * 4 + 1];
+    // room for a row of UTF-8
+    lineBuf = new char[COLS * U8COLBYTES + 1];
     lineUtf8 = false;
     info = new Win(height - bottx, width - 2, topline + topx, backg);
 }

@@ -10,38 +10,25 @@
 #include "interfac.h"
 #include "../mmail/u8text.h"
 
-#ifdef MM_UTF8_OUT
-/* A UTF-8 header field that the screen can show as it is, or 0 to use the
-   single-byte field. */
-static const char *u8field(const char *s)
+// Copy a field into a list row, cut or padded to exactly cols columns.
+static char *fieldpad(char *p, const char *s, int cols, bool u8)
 {
-    return (utf8Console && mm.letterList->isUtf8()) ? s : 0;
-}
+    if (cols < 0)
+        cols = 0;
 
-// Copy a UTF-8 field into a list row, cut or padded to exactly cols columns.
-// Three bytes a column is enough for any text without a pile of marks.
-static char *u8pad(char *p, const char *s, int cols)
-{
-    int n = u8fit(s, -1, cols, cols * 3, true);
+    int n = u8fit(s, -1, cols, cols * U8COLBYTES, u8);
 
     memcpy(p, s, n);
     p += n;
-    for (int w = u8width(s, n, true); w < cols; w++)
+    for (int w = u8width(s, n, u8); w < cols; w++)
         *p++ = ' ';
     return p;
 }
-#endif
 
 // Columns a header field takes in the list.
 static int fieldWidth(const char *plain, const char *u8)
 {
-#ifdef MM_UTF8_OUT
-    if (u8 && utf8Console && mm.letterList->isUtf8())
-        return u8width(u8, -1, true);
-#else
-    (void) u8;
-#endif
-    return strlen(plain);
+    return letterUtf8() ? u8width(u8, -1, true) : (int) strlen(plain);
 }
 
 void LetterListWindow::listSave()
@@ -91,67 +78,47 @@ void LetterListWindow::oneLine(int i)
     mm.letterList->gotoActive(position + i);
 
     int st = mm.letterList->getStatus();
-
+    bool u8 = letterUtf8();
     char *p = list->lineBuf;
 
-#ifdef MM_UTF8_OUT
-    const char *u8from = u8field(mm.letterList->getFromU8()),
-               *u8to = u8field(mm.letterList->getToU8()),
-               *u8subj = u8field(mm.letterList->getSubjectU8());
-
-    if (u8from || u8to || u8subj) {
-        // The same row as format would give, padded by columns not bytes.
-        const char *origArea = 0;
-
-        if (mm.areaList->isCollection()) {
-            origArea = mm.letterList->getNewsgrps();
-            if (!origArea)
-                origArea =
-                    mm.areaList->getDescription(mm.letterList->getAreaID());
-        }
-
-        p += sprintf(p, "%c%c%c%6ld  ", (st & MS_MARKED) ? 'M' :
-                     (st & MS_SAVED) ? 's' : ' ', (st & MS_REPLIED) ? '~' :
-                     ' ', (st & MS_READ) ? '*' : ' ',
-                     mm.letterList->getMsgNum());
-        p = u8pad(p, u8from ? u8from : mm.letterList->getFrom(), fromWidth);
-        *p++ = ' ';
-        p = u8pad(p, u8to ? u8to : mm.letterList->getTo(), toWidth);
-        *p++ = ' ';
-        p = u8pad(p, stripre(u8subj ? u8subj : mm.letterList->getSubject()),
-                  origArea ? subjWidth - 15 : subjWidth);
-        if (origArea)
-            p += sprintf(p, " %-13.13s ", origArea);
-        *p = '\0';
-
-        coltype linecol = mm.letterList->isPersonal() ? C_LLPERSONAL :
-                          C_LISTWIN;
-
-        list->lineUtf8 = true;
-        DrawOne(i, (st & MS_READ) ? noemph(linecol) : emph(linecol));
-        list->lineUtf8 = false;
-        return;
-    }
-#endif
-
-    p += sprintf(p, format, (st & MS_MARKED) ? 'M' :
+    p += sprintf(p, "%c%c%c%6ld  ", (st & MS_MARKED) ? 'M' :
                  (st & MS_SAVED) ? 's' : ' ', (st & MS_REPLIED) ? '~' : ' ',
-                 (st & MS_READ) ? '*' : ' ', mm.letterList->getMsgNum(),
-                 mm.letterList->getFrom(), mm.letterList->getTo(),
-                 stripre(mm.letterList->getSubject()));
+                 (st & MS_READ) ? '*' : ' ', mm.letterList->getMsgNum());
 
+    const char *origArea = 0;
     if (mm.areaList->isCollection()) {
-        const char *origArea = mm.letterList->getNewsgrps();
+        origArea = mm.letterList->getNewsgrps();
         if (!origArea)
             origArea = mm.areaList->getDescription(mm.letterList->getAreaID());
-        if (origArea)
-            sprintf(p - 15, " %-13.13s ", origArea);
     }
+
+    p = fieldpad(p, u8 ? mm.letterList->getFromU8() :
+                 mm.letterList->getFrom(), fromWidth, u8);
+    *p++ = ' ';
+    p = fieldpad(p, u8 ? mm.letterList->getToU8() : mm.letterList->getTo(),
+                 toWidth, u8);
+    *p++ = ' ';
+    p = fieldpad(p, stripre(u8 ? mm.letterList->getSubjectU8() :
+                 mm.letterList->getSubject()),
+                 origArea ? subjWidth - 15 : subjWidth, u8);
+
+    if (origArea) {
+        char *a = u8 ? u8dupEncode(origArea, mm.letterList->isLatin()) : 0;
+
+        *p++ = ' ';
+        p = fieldpad(p, a ? a : origArea, 13, u8);
+        *p++ = ' ';
+        delete[] a;
+    }
+    *p = '\0';
 
     coltype linecol = mm.letterList->isPersonal() ? C_LLPERSONAL : C_LISTWIN;
 
-    letterconv_in(list->lineBuf);
+    if (!u8)
+        letterconv_in(list->lineBuf);
+    list->lineUtf8 = u8;
     DrawOne(i, (st & MS_READ) ? noemph(linecol) : emph(linecol));
+    list->lineUtf8 = false;
 }
 
 searchret LetterListWindow::oneSearch(int x, const char *item, int mode)
@@ -174,10 +141,7 @@ searchret LetterListWindow::oneSearch(int x, const char *item, int mode)
 
 void LetterListWindow::setFormat()
 {
-    char topformat[LLIST_FORMAT_LEN];
-    int tot, maxFromLen, maxToLen, maxSubjLen;
-
-    tot = COLS - 19;
+    int tot = COLS - 19;
 
     // The old fixed 50/50 split (subject vs. from+to) is kept only as a
     // per-column ceiling, so long names can't crowd out the subject.
@@ -208,31 +172,25 @@ void LetterListWindow::setFormat()
 
     // Each shown column gets what its content needs, floored at its header
     // label width and capped at the ceiling; the subject takes the rest.
-    maxFromLen = 0;
+    fromWidth = 0;
     if (showFrom) {
-        maxFromLen = wideFrom < 4 ? 4 : wideFrom;
-        if (maxFromLen > ceilFrom)
-            maxFromLen = ceilFrom;
+        fromWidth = wideFrom < 4 ? 4 : wideFrom;
+        if (fromWidth > ceilFrom)
+            fromWidth = ceilFrom;
     }
 
-    maxToLen = 0;
+    toWidth = 0;
     if (showTo) {
-        maxToLen = wideTo < 2 ? 2 : wideTo;
-        if (maxToLen > ceilTo)
-            maxToLen = ceilTo;
+        toWidth = wideTo < 2 ? 2 : wideTo;
+        if (toWidth > ceilTo)
+            toWidth = ceilTo;
     }
 
-    maxSubjLen = tot - maxFromLen - maxToLen;
-    fromWidth = maxFromLen;
-    toWidth = maxToLen;
-    subjWidth = maxSubjLen;
+    subjWidth = tot - fromWidth - toWidth;
 
-    sprintf(format, "%%c%%c%%c%%6ld  %%-%d.%ds %%-%d.%ds %%-%d.%ds",
-            maxFromLen, maxFromLen, maxToLen, maxToLen, maxSubjLen,
-            maxSubjLen);
-
-    sprintf(topformat, "   Msg#%s", format + 10);
-    sprintf(topline, topformat, "From", "To", "Subject");
+    sprintf(topline, "   Msg#  %-*.*s %-*.*s %-*.*s", fromWidth, fromWidth,
+            "From", toWidth, toWidth, "To", subjWidth, subjWidth,
+            "Subject");
 }
 
 void LetterListWindow::MakeActiveCore()

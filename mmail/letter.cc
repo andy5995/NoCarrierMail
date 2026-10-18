@@ -7,6 +7,7 @@
  Distributed under the GNU General Public License, version 3 or later. */
 
 #include "mmail.h"
+#include "u8text.h"
 
 int lsorttype;  // Outside the classes because it needs to be accessible
                 // by lettercomp(), which is outside because it needs to
@@ -145,28 +146,29 @@ letter_header::~letter_header()
     delete[] u8from;
 }
 
+/* Replace a field with text in the letter's own encoding, which for a UTF-8
+   letter means setting both the UTF-8 form and a single-byte copy. */
+void letter_header::changeField(char *&field, char *&u8field, const char *s)
+{
+    delete[] field;
+    delete[] u8field;
+    u8field = utf8 ? strdupplus(s) : 0;
+    field = u8dupFold(s, utf8, charset);
+}
+
 void letter_header::changeSubject(const char *newsubj)
 {
-    delete[] subject;
-    subject = strdupplus(newsubj);
-    delete[] u8subject;     // the UTF-8 form no longer matches
-    u8subject = 0;
+    changeField(subject, u8subject, newsubj);
 }
 
 void letter_header::changeTo(const char *newto)
 {
-    delete[] to;
-    to = strdupplus(newto);
-    delete[] u8to;
-    u8to = 0;
+    changeField(to, u8to, newto);
 }
 
 void letter_header::changeFrom(const char *newfrom)
 {
-    delete[] from;
-    from = strdupplus(newfrom);
-    delete[] u8from;
-    u8from = 0;
+    changeField(from, u8from, newfrom);
 }
 
 void letter_header::changeDate(const char *newdate)
@@ -326,23 +328,20 @@ bool letter_header::isUtf8() const
     return utf8;
 }
 
-void letter_header::setUtf8(bool utf8A)
-{
-    utf8 = utf8A;
-}
-
 /* The header fields as UTF-8, for a screen that can show them; the plain
-   fields keep the single-byte text everything else uses. A null leaves that
-   field without a UTF-8 form. */
+   fields keep the single-byte text everything else uses. A field passed as
+   null is made from its single-byte copy, so a UTF-8 letter always has all
+   three. Marks the letter as UTF-8. */
 void letter_header::setUtf8Header(const char *subjA, const char *toA,
                                   const char *fromA)
 {
+    utf8 = true;
     delete[] u8subject;
     delete[] u8to;
     delete[] u8from;
-    u8subject = subjA ? strdupplus(subjA) : 0;
-    u8to = toA ? strdupplus(toA) : 0;
-    u8from = fromA ? strdupplus(fromA) : 0;
+    u8subject = subjA ? strdupplus(subjA) : u8dupEncode(subject, charset);
+    u8to = toA ? strdupplus(toA) : u8dupEncode(to, charset);
+    u8from = fromA ? strdupplus(fromA) : u8dupEncode(from, charset);
 }
 
 const char *letter_header::getSubjectU8() const

@@ -12,6 +12,9 @@ Revision History
   UTF-8 terminal, in the letter list and header as well as the body, block art
   and wide characters included. Anywhere else, and in quotes and replies, it
   becomes the nearest single-byte text instead of garbage. (#28)
+- QWK: an accented letter in the From, To or Subject of a UTF-8 message, or in
+  a UTF-8 poll, showed as a different letter in areas that are not Latin-1,
+  and replies sent it back that way.
 - A new settings file starts by asking which editor to use, instead of
   leaving you in vi when EDITOR is not set.
 - F2 now says where the reply packet was saved and how many replies it holds,

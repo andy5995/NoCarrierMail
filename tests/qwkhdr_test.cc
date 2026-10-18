@@ -74,21 +74,6 @@ int main()
     CHECK(!empty.any());
     empty.parse(0);
 
-    // utf8ToLatin1: ASCII unchanged, Latin-1 range decoded, >0xFF -> '?'
-    char *u;
-    u = utf8ToLatin1("plain ascii");
-    CHECK_STR(u, "plain ascii");
-    delete[] u;
-    u = utf8ToLatin1("caf\xC3\xA9");        // "cafe'" with U+00E9 -> 0xE9
-    CHECK(strcmp(u, "caf\xE9") == 0);
-    delete[] u;
-    u = utf8ToLatin1("\xE2\x82\xAC");       // euro sign U+20AC -> '?'
-    CHECK_STR(u, "?");
-    delete[] u;
-    u = utf8ToLatin1("");
-    CHECK_STR(u, "");
-    delete[] u;
-
     // Round-trip: the exact section format qwkreply::addRep1() writes for a
     // reply with long fields must parse back through this reader. Keeps the
     // REP write side (qwk.cc) and the read side from drifting apart.

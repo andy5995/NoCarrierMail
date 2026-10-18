@@ -89,5 +89,49 @@ int main()
     strcpy(fold, "");
     CHECK_STR(u8toLatin1(fold), "");
 
+    // ... and to CP437, for areas that are not Latin-1
+    strcpy(fold, "D\xC3\xA9uce \xE2\x94\x80\xE2\x96\x88 \xC2\xA9 \xE2\x80\x94");
+    CHECK_STR(u8toCP437(fold), "D\x82uce \xC4\xDB ? -");   // no (c) in CP437
+    strcpy(fold, "\xCE\xB1\xC3\x9F\xC2\xA0");                 // alpha, sharp s, nbsp
+    CHECK_STR(u8toCP437(fold), "\xE0\xE1\xFF");
+
+    // A folded copy leaves its source alone
+    const char *src = "d\xC3\xA9j\xC3\xA0";
+    char *copy = u8dupFold(src, true, true);
+    CHECK_STR(copy, "d\xE9j\xE0");
+    delete[] copy;
+    copy = u8dupFold(src, true, false);
+    CHECK_STR(copy, "d\x82j\x85");
+    delete[] copy;
+    copy = u8dupFold(src, false, true);    // not UTF-8: copied as it is
+    CHECK_STR(copy, src);
+    delete[] copy;
+    CHECK(u8dupFold(0, true, true) == 0);
+
+    // and back again from either set
+    copy = u8dupEncode("d\xE9j\xE0", true);
+    CHECK_STR(copy, src);
+    delete[] copy;
+    copy = u8dupEncode("d\x82j\x85 \xC4", false);
+    CHECK_STR(copy, "d\xC3\xA9j\xC3\xA0 \xE2\x94\x80");
+    delete[] copy;
+    CHECK(u8dupEncode(0, true) == 0);
+
+    // Every byte of the high half comes back as itself
+    int roundtrip = 0;
+    for (int b = 0x80; b < 0x100; b++) {
+        char one[2] = { (char) b, '\0' };
+        char *u = u8dupEncode(one, false);
+
+        u8toCP437(u);
+        roundtrip += ((unsigned char) u[0] == b) && !u[1];
+        delete[] u;
+    }
+    CHECK(roundtrip == 128);
+
+    // The table runs both ways for the high half
+    CHECK(cp437_to_uni[0x82] == 0xE9);
+    CHECK(cp437_to_uni[0xDB] == 0x2588);
+
     return mm_test_report();
 }

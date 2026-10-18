@@ -30,15 +30,6 @@ unsigned char *onecomp(unsigned char *p, char *dest, const char *comp)
     return 0;
 }
 
-// Copy a HEADERS.DAT field value. When the section is flagged Utf8=true the
-// value is UTF-8, so convert it to Latin-1; otherwise copy it as-is.
-static char *hdrField(const char *s, bool utf8)
-{
-    char *t = strdupplus(s);
-
-    return utf8 ? u8toLatin1(t) : t;
-}
-
 // -----------------------------------------------------------------
 // The QWK methods
 // -----------------------------------------------------------------
@@ -441,6 +432,10 @@ letter_header *qwkpack::getNextLetter()
     char *csubj = 0, *cto = 0, *cfrom = 0;
     int upVotes = 0, downVotes = 0;
     bool utf8 = false;
+
+    // A UTF-8 field is converted to the area's own set, which is what the
+    // rest of the program expects of the single-byte fields.
+    bool latin = !(!(areas[areaID].attr & LATINCHAR));
     const char *u8subj = 0, *u8to = 0, *u8from = 0;
 
     if (headers.has(pos)) {
@@ -452,11 +447,11 @@ letter_header *qwkpack::getNextLetter()
         const char *hsubj = headers.get(pos, "Subject");
 
         if (hsender)
-            lfrom = cfrom = hdrField(hsender, utf8);
+            lfrom = cfrom = u8dupFold(hsender, utf8, latin);
         if (hrecip)
-            lto = cto = hdrField(hrecip, utf8);
+            lto = cto = u8dupFold(hrecip, utf8, latin);
         if (hsubj)
-            lsubj = csubj = hdrField(hsubj, utf8);
+            lsubj = csubj = u8dupFold(hsubj, utf8, latin);
         if (utf8) {
             u8subj = hsubj;
             u8to = hrecip;
@@ -470,7 +465,7 @@ letter_header *qwkpack::getNextLetter()
 
     // A poll is not written to HEADERS.DAT, so its record carries only the
     // 25-char subject; VOTING.DAT has the whole question.
-    const char *psubj = votes.getPollSubject(pos);
+    char *psubj = votes.getPollSubject(pos, latin);
     if (psubj) {
         lsubj = psubj;
         u8subj = 0;
@@ -484,25 +479,25 @@ letter_header *qwkpack::getNextLetter()
        real subject as a Subject: kludge that postfirstblk() picks up. Take
        the address, so replying to the message can pre-fill it. */
     net_address na;
-    char *ksubj = 0;
+    char *ksubj = 0, *kfold = 0;
 
     if ((areas[areaID].attr & NETMAIL) && (lsubj[0] == '@') && lsubj[1]) {
         na = lsubj + 1;
 
+        // read from the body, so UTF-8 when the body is
         ksubj = kludgeSubject(rawpos, q.msglen);
         if (ksubj) {
-            lsubj = ksubj;
-            u8subj = 0;
+            lsubj = kfold = u8dupFold(ksubj, utf8, latin);
+            u8subj = ksubj;
         }
     }
 
     letter_header *newLetter = new letter_header(lsubj, lto, lfrom, ddate,
         headers.get(pos, "Message-ID"), q.refnum, letterID, q.msgnum,
         areaID, q.privat, q.msglen, this,
-        na.isSet ? na : nullNet, !(!(areas[areaID].attr & LATINCHAR)));
+        na.isSet ? na : nullNet, latin);
 
     newLetter->setVotes(upVotes, downVotes);
-    newLetter->setUtf8(utf8);
     if (utf8)
         newLetter->setUtf8Header(u8subj, u8to, u8from);
 
@@ -510,6 +505,8 @@ letter_header *qwkpack::getNextLetter()
     delete[] cto;
     delete[] csubj;
     delete[] ksubj;
+    delete[] kfold;
+    delete[] psubj;
 
     return newLetter;
 }
@@ -523,7 +520,7 @@ letter_body *qwkpack::getBody(letter_header &mhead)
 
     if (areaP) {
         char *text = votes.getPollText(areaP[mhead.getLetterID()].pointer -
-                                       128);
+            128, !(!(areas[mhead.getAreaID() - 1].attr & LATINCHAR)));
         if (text) {
             delete bodyString;
             bodyString = new letter_body(text, strlen(text));

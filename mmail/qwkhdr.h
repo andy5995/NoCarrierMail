@@ -55,9 +55,4 @@ class qwkHeaders {
     const char *get(unsigned long offset, const char *key) const;
 };
 
-// Convert a UTF-8 string to Latin-1 (codepoints above 0xFF become '?').
-// Returns a newly-allocated string (caller deletes[] it); used for HEADERS.DAT
-// fields flagged Utf8=true.
-char *utf8ToLatin1(const char *s);
-
 #endif

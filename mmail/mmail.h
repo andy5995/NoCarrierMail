@@ -324,6 +324,8 @@ class letter_header
     net_address netAddr;
     bool charset, qpenc, utf8;
     int upVotes, downVotes;
+
+    void changeField(char *&, char *&, const char *);
  public:
     letter_header(const char *, const char *, const char *,
         const char *, const char *, long, int, long, int, bool,
@@ -363,7 +365,6 @@ class letter_header
 
     void setLatin(bool);
     void setQP(bool);
-    void setUtf8(bool);
     void setUtf8Header(const char *, const char *, const char *);
     const char *getSubjectU8() const;
     const char *getToU8() const;

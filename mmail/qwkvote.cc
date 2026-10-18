@@ -7,6 +7,7 @@
 #include "qwkvote.h"
 #include "qwkhdr.h"
 #include "misc.h"
+#include "u8text.h"
 
 extern "C" {
 #include <ctype.h>
@@ -295,31 +296,6 @@ void qwkVoting::parse(const char *text)
 
     endSection(kind, target, up, down, mask, ballots, closes);
 
-    // A poll flagged Utf8=true carries UTF-8 text; convert it to Latin-1
-    // here, once, so the accessors can hand fields out as-is. Done after the
-    // whole file is read rather than per-line, so it cannot matter where in
-    // the section the flag was written.
-    for (poll *p = polls; p; p = p->next)
-        if (p->utf8) {
-            char *conv;
-            if (p->subject) {
-                conv = utf8ToLatin1(p->subject);
-                delete[] p->subject;
-                p->subject = conv;
-            }
-            for (int x = 0; x < p->noOfAnswers; x++)
-                if (p->answers[x]) {
-                    conv = utf8ToLatin1(p->answers[x]);
-                    delete[] p->answers[x];
-                    p->answers[x] = conv;
-                }
-            for (comment *c = p->comments; c; c = c->next) {
-                conv = utf8ToLatin1(c->text);
-                delete[] c->text;
-                c->text = conv;
-            }
-        }
-
     // Poll ballots are resolved last: a ballot may be written before the poll
     // it selects answers in.
     while (ballots) {
@@ -378,17 +354,22 @@ bool qwkVoting::isPoll(unsigned long offset) const
     return findPoll(offset) != 0;
 }
 
-const char *qwkVoting::getPollSubject(unsigned long offset) const
+char *qwkVoting::getPollSubject(unsigned long offset, bool latin) const
 {
     poll *p = findPoll(offset);
-    return p ? p->subject : 0;
+    return p ? u8dupFold(p->subject, p->utf8, latin) : 0;
 }
 
-char *qwkVoting::getPollText(unsigned long offset) const
+char *qwkVoting::getPollText(unsigned long offset, bool latin) const
 {
     poll *p = findPoll(offset);
     if (!p)
         return 0;
+
+    // Fold the answers first: the column they make is sized by their length.
+    char *answers[MAXANSWERS];
+    for (int x = 0; x < p->noOfAnswers; x++)
+        answers[x] = u8dupFold(p->answers[x], p->utf8, latin);
 
     // Visibility of the results on the BBS, which says nothing about what
     // this packet happens to carry.
@@ -399,7 +380,7 @@ char *qwkVoting::getPollText(unsigned long offset) const
     for (comment *c = p->comments; c; c = c->next)
         size += strlen(c->text) + 2;
     for (int x = 0; x < p->noOfAnswers; x++)
-        size += (p->answers[x] ? strlen(p->answers[x]) : 0) +
+        size += (answers[x] ? strlen(answers[x]) : 0) +
                 ANSWERWIDTH + BARWIDTH + 16;
 
     char *out = new char[size];
@@ -409,8 +390,12 @@ char *qwkVoting::getPollText(unsigned long offset) const
                  p->maxVotes, (1 == p->maxVotes) ? "" : "s",
                  seen[p->results & 3]);
 
-    for (comment *c = p->comments; c; c = c->next)
-        o += sprintf(o, "%s\n", c->text);
+    for (comment *c = p->comments; c; c = c->next) {
+        char *t = u8dupFold(c->text, p->utf8, latin);
+
+        o += sprintf(o, "%s\n", t);
+        delete[] t;
+    }
     if (p->comments)
         *o++ = '\n';
 
@@ -418,7 +403,7 @@ char *qwkVoting::getPollText(unsigned long offset) const
     for (int x = 0; x < p->noOfAnswers; x++) {
         if (p->answerVotes[x] > most)
             most = p->answerVotes[x];
-        int len = p->answers[x] ? (int) strlen(p->answers[x]) : 0;
+        int len = answers[x] ? (int) strlen(answers[x]) : 0;
         if (len > width)
             width = len;
     }
@@ -429,7 +414,7 @@ char *qwkVoting::getPollText(unsigned long offset) const
         int bar = most ? ((p->answerVotes[x] * BARWIDTH + most - 1) / most) : 0;
 
         o += sprintf(o, "  %-*.*s ", width, width,
-                     p->answers[x] ? p->answers[x] : "");
+                     answers[x] ? answers[x] : "");
         for (int y = 0; y < BARWIDTH; y++)
             *o++ = (y < bar) ? '#' : ' ';
         o += sprintf(o, "  %d\n", p->answerVotes[x]);
@@ -440,6 +425,9 @@ char *qwkVoting::getPollText(unsigned long offset) const
                 (1 == p->ballots) ? "" : "s");
     else
         sprintf(o, "\nNo ballots for this poll in this packet.\n");
+
+    for (int x = 0; x < p->noOfAnswers; x++)
+        delete[] answers[x];
 
     return out;
 }

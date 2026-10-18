@@ -27,6 +27,9 @@
    to mean "up to the terminating NUL". Self-contained: no curses, no
    globals. */
 
+// CP437 byte -> Unicode code point, control codes as their IBM glyphs.
+extern const unsigned short cp437_to_uni[256];
+
 // Decode one character at s, reading at most len bytes (len >= 1). Stores the
 // code point in *cp (0xFFFD for an invalid sequence) and returns the number
 // of bytes used, which is always at least 1.
@@ -48,10 +51,20 @@ int u8char(const char *s, int len, int *cols);
 // that measure. A wide character that would only half fit is left out.
 int u8fit(const char *s, int len, int maxcols, int maxbytes, bool utf8);
 
-// Rewrite UTF-8 text as Latin-1 in place, for a display that cannot show
-// UTF-8. Dashes, curly quotes and the ellipsis become their ASCII look-alikes,
-// other characters above U+00FF become '?', and zero-width marks are removed.
-// The result is never longer than the input. Returns s.
+// Rewrite UTF-8 text in place as Latin-1 or as CP437, for code that keeps
+// single-byte text. A character the set lacks becomes '?', except that
+// dashes, curly quotes and the ellipsis become their ASCII look-alikes;
+// zero-width marks are removed. The result is never longer than the input.
+// Returns s.
 char *u8toLatin1(char *s);
+char *u8toCP437(char *s);
+
+// A newly allocated copy of s (caller deletes[] it), folded to Latin-1 or to
+// CP437 by the functions above when it is UTF-8; 0 when s is 0.
+char *u8dupFold(const char *s, bool utf8, bool latin);
+
+// The other way: a newly allocated UTF-8 copy of single-byte text, read as
+// Latin-1 or as CP437; 0 when s is 0.
+char *u8dupEncode(const char *s, bool latin);
 
 #endif

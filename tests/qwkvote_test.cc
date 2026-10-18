@@ -122,7 +122,7 @@ int main()
 
     // Rendered body: question keys off the answers, and the one ballot's
     // 0x2 mask selects answer 1 only.
-    char *body = p.getPollText(0x100);
+    char *body = p.getPollText(0x100, true);
     CHECK(body != 0);
     // "results closed" comes from the [close:...] section -- the poll's own
     // snapshot said Results = 1 (open).
@@ -135,7 +135,7 @@ int main()
     CHECK(strstr(body, "  Used to be                           0\n") != 0);
     delete[] body;
 
-    CHECK(p.getPollText(0x999) == 0);
+    CHECK(p.getPollText(0x999, true) == 0);
 
     // A multi-bit mask selects several answers at once (real packets contain
     // masks like 0x1c). Ballots may also precede the poll they belong to.
@@ -165,7 +165,7 @@ int main()
     CHECK(m.getNoOfPolls() == 1);
     CHECK(m.isPoll(0x80));
 
-    char *mbody = m.getPollText(0x80);
+    char *mbody = m.getPollText(0x80, true);
     CHECK(mbody != 0);
     CHECK(strstr(mbody, "3 votes per ballot") != 0);
     CHECK(strstr(mbody, "results open") != 0);
@@ -178,8 +178,8 @@ int main()
     CHECK(strstr(mbody, "  C ########################  2\n") != 0);
     delete[] mbody;
 
-    // A poll flagged Utf8=true has its subject and answers converted to
-    // Latin-1, wherever in the section the flag appears.
+    // A poll flagged Utf8=true has its subject and answers converted to the
+    // area's set, wherever in the section the flag appears.
     const char *upoll =
         "[20]\r\n"
         "[poll:<POLL.U@vert>]\r\n"
@@ -189,9 +189,17 @@ int main()
 
     qwkVoting u;
     u.parse(upoll);
-    CHECK_STR(u.getPollSubject(0x20), "d\xE9j\xE0 vu?");
-    char *ubody = u.getPollText(0x20);
+    char *usubj = u.getPollSubject(0x20, true);
+    CHECK_STR(usubj, "d\xE9j\xE0 vu?");
+    delete[] usubj;
+    usubj = u.getPollSubject(0x20, false);      // a CP437 area
+    CHECK_STR(usubj, "d\x82j\x85 vu?");
+    delete[] usubj;
+    char *ubody = u.getPollText(0x20, true);
     CHECK(strstr(ubody, "caf\xE9") != 0);
+    delete[] ubody;
+    ubody = u.getPollText(0x20, false);
+    CHECK(strstr(ubody, "caf\x82") != 0);
     delete[] ubody;
 
     // A poll nobody voted on still renders, without dividing by zero on the
@@ -203,7 +211,7 @@ int main()
 
     qwkVoting one;
     one.parse(lonely);
-    char *lbody = one.getPollText(0x40);
+    char *lbody = one.getPollText(0x40, true);
     CHECK(lbody != 0);
     CHECK(strstr(lbody, "Only option") != 0);
     CHECK(strstr(lbody, "No ballots for this poll") != 0);
