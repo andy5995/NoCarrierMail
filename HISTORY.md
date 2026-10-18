@@ -4,6 +4,9 @@ Revision History
 (in-progress)
 -------------
 
+- UseLynxNav, BeepOnPers and LetterSort in the settings file were ignored:
+  the list and letter windows read them before the file was loaded, so they
+  always got the defaults.
 - Windows: box drawing and accented letters came out as the wrong characters
   in a console set to code page 1252. The console is now set to match the
   Charset setting while NoCarrierMail runs (the CTRL-Z shell gets yours back),

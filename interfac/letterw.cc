@@ -30,9 +30,6 @@ LetterWindow::LetterWindow()
     NumOfLines = 0;
     tagline1[0] = '\0';
     To = 0;
-
-    beepPers = mm.res.getInt(BeepOnPers);
-    lynxNav = mm.res.getInt(UseLynxNav);
 }
 
 LetterWindow::~LetterWindow()
@@ -388,7 +385,7 @@ void LetterWindow::Draw(bool redo)
                 mm.letterList->setRead();  // nem ide kene? de.
                 ui.setAnyRead();
             }
-            if (beepPers && mm.letterList->isPersonal())
+            if (mm.res.getInt(BeepOnPers) && mm.letterList->isPersonal())
                 beep();
         }
     }
@@ -1088,13 +1085,13 @@ void LetterWindow::KeyHandle(int key)
         }
         break;
     case MM_RIGHT:
-        if (lynxNav)
+        if (mm.res.getInt(UseLynxNav))
             break;
     case MM_PLUS:
         Next();
         break;
     case MM_LEFT:
-        if (lynxNav) {
+        if (mm.res.getInt(UseLynxNav)) {
             ui.back();
             break;
         }

@@ -13,7 +13,9 @@
 void Interface::init()
 {
     isoConsole = mm.res.getInt(Charset);
-    lynxNav = mm.res.getInt(UseLynxNav);
+    // Here, not in LetterListWindow's constructor: that runs before main()
+    // has read the settings file, so it only ever saw the default.
+    lsorttype = mm.res.getInt(LetterSort);
     searchItem = 0;
     goodbye = 0;
 #ifdef KEY_RESIZE
@@ -688,7 +690,7 @@ int Interface::ansiCommon()
     KeyHandle();
     switch (Key) {
     case MM_LEFT:
-        if (lynxNav)
+        if (mm.res.getInt(UseLynxNav))
             return 0;
     case MM_MINUS:
         return -1;

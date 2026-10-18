@@ -747,7 +747,6 @@ ListWindow::ListWindow()
 {
     position = active = 0;
     oldPos = oldActive = oldHigh = -100;
-    lynxNav = mm.res.getInt(UseLynxNav);
 
     /* The window geometry is not known until MakeActive() runs, but the
        cursor can be moved before that -- AreaListWindow::FirstUnread()
@@ -1000,7 +999,7 @@ bool ListWindow::KeyHandle(int key)
         break;
 #endif
     case MM_LEFT:
-        if (lynxNav) {
+        if (mm.res.getInt(UseLynxNav)) {
             draw = false;
             end = ui.back();
             break;
@@ -1009,7 +1008,7 @@ bool ListWindow::KeyHandle(int key)
         Prev();
         break;
     case MM_RIGHT:
-        if (lynxNav) {
+        if (mm.res.getInt(UseLynxNav)) {
             draw = false;
             end = ui.select();
             break;

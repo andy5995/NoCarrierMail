@@ -240,7 +240,6 @@ class InfoWin : public ShadowedWin
 class ListWindow
 {
  private:
-    bool lynxNav;   //use Lynx-like navigation?
     int oldPos;     //position at last Draw()
     int oldActive;  //active at last Draw()
     int oldHigh;    //location of highlight bar at last Draw()
@@ -482,7 +481,6 @@ class LetterListWindow : public ListWindow
     void setFormat();
     void MakeActiveCore();
  public:
-    LetterListWindow();
     void ResetActive();
     void MakeActive();
     void Delete();
@@ -514,8 +512,7 @@ class LetterWindow
     int position;         //which row is the first in the text window
     int NumOfLines;
     int y;                //height of the window, set by MakeActive
-    int beepPers;
-    bool rot13, hidden, lynxNav;
+    bool rot13, hidden;
     net_address NM;
     time_t lasttime;
 
@@ -728,7 +725,7 @@ class Interface
     file_header *goodbye;
     int Key, searchmode, s_oldpos, width_min, height_min;
     bool unsaved_reply, any_read, addrparm, commandline, abortNow,
-        dontSetAsRead, lynxNav, reportUp;
+        dontSetAsRead, reportUp;
 #ifdef KEY_RESIZE
     bool resized;
 

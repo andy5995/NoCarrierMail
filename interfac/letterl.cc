@@ -9,11 +9,6 @@
 
 #include "interfac.h"
 
-LetterListWindow::LetterListWindow()
-{
-    lsorttype = mm.res.getInt(LetterSort);
-}
-
 void LetterListWindow::listSave()
 {
     static const char *saveopts[] = { "Marked", "All", "This one", "Quit" };
