@@ -26,6 +26,7 @@ extern "C" {
 #ifdef LIMIT_MEM
 # ifdef __WATCOMC__
 #  include <malloc.h>
+#  include <dos.h>
 # else
 #  include <alloc.h>
 # endif
@@ -486,11 +487,25 @@ time_t touchFile(const char *fname)
 
 long maxfreemem()
 {
-    return
 # ifdef __WATCOMC__
-        (long) _memmax();
+    /* In the large model new takes from the far heap, which grows out of
+       DOS memory. _memmax() only measures the near heap, so count the
+       largest free DOS block (asking for 1 MB fails and reports it) plus
+       what the far heap already holds free. */
+    struct _heapinfo h;
+    unsigned paras = 0;
+
+    _dos_allocmem(0xFFFF, &paras);
+    long total = (long) paras << 4;
+
+    h._pentry = 0;
+    while (_HEAPOK == _heapwalk(&h))
+        if (_FREEENTRY == h._useflag)
+            total += h._size;
+
+    return total;
 # else  // Turbo C++
-        (long) coreleft();
+    return (long) coreleft();
 # endif
 }
 

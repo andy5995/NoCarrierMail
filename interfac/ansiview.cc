@@ -894,10 +894,16 @@ void AnsiWindow::MakeChain()
         blen += c;
     }
 
+#ifdef LIMIT_MEM
+    unsigned char sincecheck = 0;
+#endif
+
     do {
         c = source.nextchar();
 #ifdef LIMIT_MEM
-        if (maxfreemem() < ((long) NumOfLines * sizeof(AnsiLine *) + 0x200)) {
+        // maxfreemem() walks the heap, too slow to call per character
+        if (!++sincecheck && (maxfreemem() <
+            ((long) NumOfLines * sizeof(AnsiLine *) + 0x200))) {
             c = 0;
             blen = 2;
         }
