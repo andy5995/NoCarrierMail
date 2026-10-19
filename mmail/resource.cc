@@ -509,7 +509,7 @@ resource::resource()
 // Full path of the settings file; the caller deletes it.
 char *resource::configName() const
 {
-    return fullpath(resourceData[homeDir], RCNAME);
+    return canonize(fullpath(resourceData[homeDir], RCNAME));
 }
 
 // Run the editor on the settings file, then read back what it holds.
