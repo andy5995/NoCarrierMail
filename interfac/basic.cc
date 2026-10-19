@@ -421,7 +421,9 @@ int Win::ystart()
 /* Copy one cell of what is already on the screen into the shadow window,
    recolored. winch() cannot carry a character that does not fit in a byte, so
    on a UTF-8 terminal the wide calls are the only way to read back anything we
-   drew with them -- otherwise the shadow prints garbage over the art. */
+   drew with them -- otherwise the shadow prints garbage over the art. A line
+   or board character reads back as a letter plus A_ALTCHARSET, so keep that
+   bit or the shadow shows "q" and "h". */
 
 static void shadowcell(WINDOW *dest, WINDOW *src, int sy, int sx, int dy,
                        int dx)
@@ -434,9 +436,10 @@ static void shadowcell(WINDOW *dest, WINDOW *src, int sy, int sx, int dy,
     if ((ERR != mvwin_wch(src, sy, sx, &cell)) &&
         (ERR != getcchar(&cell, w, &attrs, &pair, 0))) {
         chtype shade = ColorArray[C_SHADOW];
+        attr_t a = (attr_t) (shade & ~(A_CHARTEXT | A_COLOR)) |
+                   (attrs & A_ALTCHARSET);
 
-        setcchar(&cell, w, (attr_t) (shade & ~(A_CHARTEXT | A_COLOR)),
-                 PAIR_NUMBER(shade), 0);
+        setcchar(&cell, w, a, PAIR_NUMBER(shade), 0);
         mvwadd_wch(dest, dy, dx, &cell);
     }
 }
