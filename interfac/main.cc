@@ -67,8 +67,16 @@ void fatalError(const char *description)
 #ifdef SIXTEENBIT
 // These compilers' new returns 0 when memory runs out rather than throwing,
 // and the program writes through it, so DOS hangs. Say so and exit instead.
+// Closing the screen can itself run out, so a second call skips it.
 static void outOfMemory()
 {
+    static bool closing = false;
+
+    if (closing) {
+        fprintf(stderr, "\n\nOut of memory\n\n");
+        exit(EXIT_FAILURE);
+    }
+    closing = true;
     fatalError("Out of memory");
 }
 #endif

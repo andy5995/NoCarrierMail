@@ -895,17 +895,21 @@ void AnsiWindow::MakeChain()
     }
 
 #ifdef LIMIT_MEM
-    unsigned char sincecheck = 0;
+    int checkedLines = 0;
 #endif
 
     do {
         c = source.nextchar();
 #ifdef LIMIT_MEM
-        // maxfreemem() walks the heap, too slow to call per character
-        if (!++sincecheck && (maxfreemem() <
-            ((long) NumOfLines * sizeof(AnsiLine *) + 0x200))) {
-            c = 0;
-            blen = 2;
+        // maxfreemem() walks the heap, too slow to call per character; memory
+        // is only taken a line at a time, so check when a line is added
+        if (NumOfLines != checkedLines) {
+            checkedLines = NumOfLines;
+            if (maxfreemem() <
+                ((long) NumOfLines * sizeof(AnsiLine *) + 0x200)) {
+                c = 0;
+                blen = 2;
+            }
         }
 #endif
         if (bsvparse && isbsv) {

@@ -489,21 +489,22 @@ long maxfreemem()
 {
 # ifdef __WATCOMC__
     /* In the large model new takes from the far heap, which grows out of
-       DOS memory. _memmax() only measures the near heap, so count the
-       largest free DOS block (asking for 1 MB fails and reports it) plus
-       what the far heap already holds free. */
+       DOS memory. _memmax() only measures the near heap, so take the
+       largest free DOS block (asking for 1 MB fails and reports it) or the
+       largest free far heap block, whichever is bigger. Callers want the
+       biggest single allocation, not the total. */
     struct _heapinfo h;
     unsigned paras = 0;
 
     _dos_allocmem(0xFFFF, &paras);
-    long total = (long) paras << 4;
+    long largest = (long) paras << 4;
 
     h._pentry = 0;
     while (_HEAPOK == _heapwalk(&h))
-        if (_FREEENTRY == h._useflag)
-            total += h._size;
+        if ((_FREEENTRY == h._useflag) && ((long) h._size > largest))
+            largest = h._size;
 
-    return total;
+    return largest;
 # else  // Turbo C++
     return (long) coreleft();
 # endif
