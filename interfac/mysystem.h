@@ -47,6 +47,7 @@ long limitmem(long);
 #endif
 
 char *canonize(char *);
+char *backslashes(char *);
 
 #ifdef HAS_HOME
 const char *homify(const char *);

@@ -550,6 +550,20 @@ char *canonize(char *sinner)
     return sinner;
 }
 
+/* The same for a path that is shown rather than run, so every slash is
+   converted, spaces or not.
+*/
+
+char *backslashes(char *path)
+{
+#ifdef DOSNAMES
+    for (char *p = path; *p; p++)
+        if ('/' == *p)
+            *p = '\\';
+#endif
+    return path;
+}
+
 #ifdef HAS_HOME
 
 /* Recognize '~' as a substitute for the home directory path, on Unix-like

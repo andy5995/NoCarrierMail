@@ -622,8 +622,8 @@ void Interface::create_reply_packet(bool tell)
 
             if (mm.checkForReplies()) {
                 int n = mm.reply->getNoOfLetters();
-                char *path = canonize(fullpath(mm.res.get(ReplyDir),
-                                               mm.reply->getReplyName()));
+                char *path = backslashes(fullpath(mm.res.get(ReplyDir),
+                                                  mm.reply->getReplyName()));
 
                 int len = sprintf(msg, "Saved %d %s to ", n,
                                   (n == 1) ? "reply" : "replies");
