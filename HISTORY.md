@@ -19,6 +19,8 @@ Revision History
   the background pattern and line drawing they fell across.
 - DOS: in a large Synchronet QWK packet, most messages lost their full-length
   From, To and Subject, their UTF-8 handling and their vote tallies. (#48)
+- DOS: running out of memory now ends the program with "Out of memory"
+  instead of hanging the machine.
 - A new settings file starts by asking which editor to use, instead of
   leaving you in vi when EDITOR is not set.
 - F2 now says where the reply packet was saved and how many replies it holds,

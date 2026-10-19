@@ -10,6 +10,9 @@
 #include "interfac.h"
 
 #include <locale.h>
+#ifdef SIXTEENBIT
+# include <new.h>
+#endif
 #ifdef HAS_LANGINFO
 # include <langinfo.h>
 # include <string.h>
@@ -60,6 +63,15 @@ void fatalError(const char *description)
     fprintf(stderr, "\n\n%s\n\n", description);
     exit(EXIT_FAILURE);
 }
+
+#ifdef SIXTEENBIT
+// These compilers' new returns 0 when memory runs out rather than throwing,
+// and the program writes through it, so DOS hangs. Say so and exit instead.
+static void outOfMemory()
+{
+    fatalError("Out of memory");
+}
+#endif
 
 void pauseError(const char *description)
 {
@@ -134,6 +146,9 @@ static bool loneOption(const char *arg)
 
 int main(int argc, char **argv)
 {
+#ifdef SIXTEENBIT
+    set_new_handler(outOfMemory);
+#endif
     setlocale(LC_ALL, "");
 
 #ifdef HAS_LANGINFO
