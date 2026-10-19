@@ -11,6 +11,24 @@ extern "C" {
 #include <ctype.h>
 }
 
+// Feed text to parseLine() the way qwkpack::loadVoting() does: one line at a
+// time, each keeping its newline, as fgets() leaves it.
+static void feedLines(qwkVoting &v, const char *text)
+{
+    char line[256];
+
+    while (*text) {
+        const char *nl = strchr(text, '\n');
+        size_t len = nl ? (size_t) (nl - text + 1) : strlen(text);
+
+        memcpy(line, text, len);
+        line[len] = '\0';
+        v.parseLine(line);
+        text += len;
+    }
+    v.finish();
+}
+
 int main()
 {
     // A VOTING.DAT as Synchronet's msgtoqwk.cc writes it: each entry is an
@@ -133,6 +151,16 @@ int main()
     CHECK(strstr(body, "  Yes                                  0\n") != 0);
     CHECK(strstr(body, "  No         ########################  1\n") != 0);
     CHECK(strstr(body, "  Used to be                           0\n") != 0);
+
+    // Read a line at a time, the same file gives the same poll, with the
+    // ballot and the closure applied after the last line.
+    qwkVoting pl;
+    feedLines(pl, polls);
+    CHECK(pl.getNoOfPolls() == 1);
+    char *bodyl = pl.getPollText(0x100, true);
+    CHECK(bodyl != 0);
+    CHECK_STR(bodyl, body);
+    delete[] bodyl;
     delete[] body;
 
     CHECK(p.getPollText(0x999, true) == 0);

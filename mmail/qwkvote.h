@@ -72,13 +72,21 @@ class qwkVoting {
     poll *polls;
     int count, noPolls;
 
+    // Where parseLine() is in the file: the open section and what it holds.
+    int sectKind;
+    unsigned long marker;
+    int secUp, secDown;
+    unsigned secMask;
+    char *secTarget;
+    poll *curPoll, *lastPoll;
+    pending *ballots, *closes;
+
     static unsigned hash(const char *);
     tally *find(const char *) const;
     void add(const char *, int, int);
     poll *findPoll(unsigned long) const;
     poll *findPollByID(const char *) const;
-    void endSection(int kind, char *&target, int &up, int &down,
-                    unsigned &mask, pending *&ballots, pending *&closes);
+    void endSection();
 
  public:
     qwkVoting();
@@ -86,6 +94,12 @@ class qwkVoting {
 
     // Parse null-terminated VOTING.DAT text into this object.
     void parse(const char *text);
+
+    // The same a line at a time (each modified in place), for a file too big
+    // to hold in one block on a 16-bit build. Call finish() after the last
+    // line; nothing parsed this way is usable before that.
+    void parseLine(char *line);
+    void finish();
 
     // Did the packet ship a VOTING.DAT with any usable ballots?
     bool any() const;

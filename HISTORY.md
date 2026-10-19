@@ -17,6 +17,8 @@ Revision History
   and replies sent it back that way.
 - Window shadows on a UTF-8 terminal showed rows of "h" and "q" in place of
   the background pattern and line drawing they fell across.
+- DOS: in a large Synchronet QWK packet, most messages lost their full-length
+  From, To and Subject, their UTF-8 handling and their vote tallies. (#48)
 - A new settings file starts by asking which editor to use, instead of
   leaving you in vi when EDITOR is not set.
 - F2 now says where the reply packet was saved and how many replies it holds,

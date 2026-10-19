@@ -289,43 +289,34 @@ void qwkpack::readIndices()
     }
 }
 
-// Read a whole packet file into a null-terminated buffer for the .ini-style
-// parsers. Returns 0 if it's missing or empty; caller deletes[] the result.
-static char *slurpWorkFile(const char *name)
-{
-    FILE *f = mm.workList->ftryopen(name);
-    if (!f)
-        return 0;
-
-    char *buf = 0;
-    long size = mm.workList->getSize();
-    if (size > 0) {
-        buf = new char[size + 1];
-        size_t got = fread(buf, 1, size, f);
-        buf[got] = '\0';
-    }
-    fclose(f);
-
-    return buf;
-}
-
 void qwkpack::loadHeaders()
 {
-    char *buf = slurpWorkFile("headers.dat");
+    static const char *const used[] = {
+        "Utf8", "Sender", "To", "Subject", "Message-ID", 0
+    };
 
-    if (buf) {
-        headers.parse(buf);
-        delete[] buf;
+    FILE *f = mm.workList->ftryopen("headers.dat");
+
+    if (f) {
+        headers.keepOnly(used);
+        headers.open(f);
     }
 }
+
+enum { INILINE = 1024 };
 
 void qwkpack::loadVoting()
 {
-    char *buf = slurpWorkFile("voting.dat");
+    FILE *f = mm.workList->ftryopen("voting.dat");
 
-    if (buf) {
-        votes.parse(buf);
+    // Read a line at a time: a 16-bit build cannot hold a big one whole.
+    if (f) {
+        char *buf = new char[INILINE];
+        while (iniReadLine(f, buf, INILINE))
+            votes.parseLine(buf);
+        votes.finish();
         delete[] buf;
+        fclose(f);
     }
 }
 

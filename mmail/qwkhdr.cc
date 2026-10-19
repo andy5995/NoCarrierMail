@@ -55,100 +55,185 @@ bool iniSplit(char *line, char *&key, char *&value)
     return true;
 }
 
+bool iniReadLine(FILE *f, char *buf, int size)
+{
+    if (!fgets(buf, size, f))
+        return false;
+
+    if (!strchr(buf, '\n')) {
+        int c;
+        while (((c = fgetc(f)) != EOF) && (c != '\n'))
+            ;
+    }
+    return true;
+}
+
 qwkHeaders::qwkHeaders()
 {
-    head = 0;
+    first = last = 0;
+    sorted = true;
+    file = 0;
+    line = 0;
+    wanted = 0;
+    loaded = false;
+    loadedOffset = 0;
+    fields = 0;
 }
 
 qwkHeaders::~qwkHeaders()
 {
-    section *s = head;
-    while (s) {
-        field *f = s->fields;
-        while (f) {
-            field *fnext = f->next;
-            delete[] f->key;
-            delete[] f->value;
-            delete f;
-            f = fnext;
-        }
-        section *snext = s->next;
-        delete s;
-        s = snext;
+    clearFields();
+    while (first) {
+        chunk *next = first->next;
+        delete first;
+        first = next;
     }
+    delete[] line;
+    if (file)
+        fclose(file);
 }
 
-void qwkHeaders::parse(const char *text)
+void qwkHeaders::keepOnly(const char *const *keys)
 {
-    if (!text)
-        return;
+    wanted = keys;
+}
 
-    char *work = strdupplus(text);
-    section *cur = 0;
-    char *line = work;
+void qwkHeaders::open(FILE *f)
+{
+    file = f;
+    line = new char[LINELEN];
 
-    while (line && *line) {
-        char *nl = strchr(line, '\n');
-        if (nl)
-            *nl = '\0';
-
+    unsigned long prev = 0;
+    long pos = ftell(file);
+    while (iniReadLine(file, line, LINELEN)) {
         char *t = iniTrim(line);
 
-        if (*t == '[') {
-            // Section header: [<hex offset into MESSAGES.DAT>]
-            char *close = strchr(t, ']');
-            if (close) {
-                *close = '\0';
-                section *s = new section;
-                s->offset = strtoul(t + 1, 0, 16);
-                s->fields = 0;
-                s->next = head;
-                head = s;
-                cur = s;
+        // Section header: [<hex offset into MESSAGES.DAT>]
+        if ((*t == '[') && strchr(t, ']')) {
+            unsigned long offset = strtoul(t + 1, 0, 16);
+
+            if (last && (offset <= prev))
+                sorted = false;
+            prev = offset;
+
+            if (!last || (last->n == CHUNK)) {
+                chunk *c = new chunk;
+                c->n = 0;
+                c->next = 0;
+                if (last)
+                    last->next = c;
+                else
+                    first = c;
+                last = c;
             }
-        } else if (*t && cur) {
-            char *key, *value;
-            if (iniSplit(t, key, value)) {
-                if (*key) {
-                    field *f = new field;
-                    f->key = strdupplus(key);
-                    f->value = strdupplus(value);
-                    f->next = cur->fields;
-                    cur->fields = f;
-                }
-            }
+            last->offset[last->n] = offset;
+            last->pos[last->n++] = pos;
         }
-
-        line = nl ? (nl + 1) : 0;
+        pos = ftell(file);
     }
-
-    delete[] work;
 }
 
-qwkHeaders::section *qwkHeaders::findSection(unsigned long offset) const
+long qwkHeaders::find(unsigned long offset) const
 {
-    for (section *s = head; s; s = s->next)
-        if (s->offset == offset)
-            return s;
-    return 0;
+    for (chunk *c = first; c; c = c->next) {
+        if (sorted) {
+            if (offset > c->offset[c->n - 1])
+                continue;
+
+            int lo = 0, hi = c->n - 1;
+            while (lo <= hi) {
+                int mid = (lo + hi) / 2;
+                if (c->offset[mid] == offset)
+                    return c->pos[mid];
+                if (c->offset[mid] < offset)
+                    lo = mid + 1;
+                else
+                    hi = mid - 1;
+            }
+            return -1;
+        }
+        for (int i = 0; i < c->n; i++)
+            if (c->offset[i] == offset)
+                return c->pos[i];
+    }
+    return -1;
 }
 
 bool qwkHeaders::has(unsigned long offset) const
 {
-    return findSection(offset) != 0;
+    return find(offset) >= 0;
 }
 
 bool qwkHeaders::any() const
 {
-    return head != 0;
+    return first != 0;
 }
 
-const char *qwkHeaders::get(unsigned long offset, const char *key) const
+void qwkHeaders::clearFields()
 {
-    section *s = findSection(offset);
-    if (s)
-        for (field *f = s->fields; f; f = f->next)
-            if (iniKeyEq(f->key, key))
-                return f->value;
+    while (fields) {
+        field *next = fields->next;
+        delete[] fields->key;
+        delete[] fields->value;
+        delete fields;
+        fields = next;
+    }
+}
+
+void qwkHeaders::addField(char *t)
+{
+    char *key, *value;
+
+    if (!iniSplit(t, key, value) || !*key)
+        return;
+
+    if (wanted) {
+        bool keep = false;
+        for (const char *const *w = wanted; *w && !keep; w++)
+            keep = iniKeyEq(key, *w);
+        if (!keep)
+            return;
+    }
+
+    field *f = new field;
+    f->key = strdupplus(key);
+    f->value = strdupplus(value);
+    f->next = fields;
+    fields = f;
+}
+
+// Read one section's fields, the lines between its "[...]" line and the next
+void qwkHeaders::load(unsigned long offset)
+{
+    clearFields();
+    loaded = true;
+    loadedOffset = offset;
+
+    long pos = find(offset);
+    if ((pos < 0) || fseek(file, pos, SEEK_SET))
+        return;
+
+    if (!iniReadLine(file, line, LINELEN))
+        return;
+    while (iniReadLine(file, line, LINELEN)) {
+        char *t = iniTrim(line);
+
+        if (*t == '[')
+            break;
+        if (*t)
+            addField(t);
+    }
+}
+
+const char *qwkHeaders::get(unsigned long offset, const char *key)
+{
+    if (!file)
+        return 0;
+    if (!loaded || (loadedOffset != offset))
+        load(offset);
+
+    for (field *f = fields; f; f = f->next)
+        if (iniKeyEq(f->key, key))
+            return f->value;
     return 0;
 }

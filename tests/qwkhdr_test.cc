@@ -7,6 +7,16 @@
 #include "test.h"
 #include "../mmail/qwkhdr.h"
 
+// Index text as HEADERS.DAT, through a temporary file as the reader does.
+static void openText(qwkHeaders &h, const char *text)
+{
+    FILE *f = tmpfile();
+
+    fputs(text, f);
+    rewind(f);
+    h.open(f);
+}
+
 int main()
 {
     // A two-message HEADERS.DAT, as Synchronet's msgtoqwk.cc writes it:
@@ -28,7 +38,7 @@ int main()
         "Subject: second message\r\n";
 
     qwkHeaders h;
-    h.parse(sample);
+    openText(h, sample);
 
     // Sections are keyed by hex offset into MESSAGES.DAT
     CHECK(h.has(0x1a80));
@@ -67,12 +77,55 @@ int main()
     CHECK(h.get(0x1a80, "Nonexistent") == 0);
     CHECK(h.get(0x9999, "Sender") == 0);
 
-    // Parsing empty / null input is harmless
+    // Asking about one section, then another, then the first again reads
+    // each back from the file.
+    CHECK_STR(h.get(0x1a80, "Sender"), "Digital Man");
+    CHECK_STR(h.get(0x2b00, "Sender"), "Rob Swindell");
+    CHECK_STR(h.get(0x1a80, "Subject"),
+              "longer than the 25-char MESSAGES.DAT field = yes");
+
+    // keepOnly(): unlisted keys are not stored, matched case-insensitively.
+    static const char *const used[] = { "sender", "Utf8", 0 };
+    qwkHeaders k;
+    k.keepOnly(used);
+    openText(k, sample);
+    CHECK(k.has(0x2b00));
+    CHECK_STR(k.get(0x1a80, "Sender"), "Digital Man");
+    CHECK_STR(k.get(0x1a80, "Utf8"), "true");
+    CHECK(!k.get(0x1a80, "Subject"));
+    CHECK(!k.get(0x2b00, "Subject"));
+
+    // Sections out of offset order are still found.
+    qwkHeaders u;
+    openText(u, "[300]\nSender: C\n[100]\nSender: A\n[200]\nSender: B\n");
+    CHECK_STR(u.get(0x100, "Sender"), "A");
+    CHECK_STR(u.get(0x200, "Sender"), "B");
+    CHECK_STR(u.get(0x300, "Sender"), "C");
+    CHECK(!u.has(0x400));
+
+    // More sections than one index chunk holds
+    char *many = new char[700 * 32];
+    char *m = many;
+    for (int i = 1; i <= 700; i++)
+        m += sprintf(m, "[%x]\nSender: n%d\n", i * 0x80, i);
+    qwkHeaders big;
+    openText(big, many);
+    delete[] many;
+    CHECK_STR(big.get(0x80, "Sender"), "n1");
+    CHECK_STR(big.get(300 * 0x80, "Sender"), "n300");
+    CHECK_STR(big.get(700 * 0x80, "Sender"), "n700");
+    CHECK(!big.has(701 * 0x80));
+    CHECK(!big.has(0x81));
+
+    // Empty input: nothing found, and nothing to read
     qwkHeaders empty;
-    empty.parse("");
+    openText(empty, "");
     CHECK(!empty.has(0x1a80));
     CHECK(!empty.any());
-    empty.parse(0);
+    CHECK(!empty.get(0x1a80, "Sender"));
+    qwkHeaders none;
+    CHECK(!none.any());
+    CHECK(!none.get(0x1a80, "Sender"));
 
     // Round-trip: the exact section format qwkreply::addRep1() writes for a
     // reply with long fields must parse back through this reader. Keeps the
@@ -86,7 +139,7 @@ int main()
         "\r\n";
 
     qwkHeaders rt;
-    rt.parse(written);
+    openText(rt, written);
     CHECK(rt.has(0x80));
     CHECK_STR(rt.get(0x80, "Utf8"), "false");
     CHECK_STR(rt.get(0x80, "Sender"),

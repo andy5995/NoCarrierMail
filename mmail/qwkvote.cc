@@ -44,6 +44,14 @@ qwkVoting::qwkVoting()
         buckets[x] = 0;
     polls = 0;
     count = noPolls = 0;
+
+    sectKind = SK_OTHER;
+    marker = 0;
+    secUp = secDown = 0;
+    secMask = 0;
+    secTarget = 0;
+    curPoll = lastPoll = 0;
+    ballots = closes = 0;
 }
 
 qwkVoting::~qwkVoting()
@@ -137,35 +145,33 @@ qwkVoting::poll *qwkVoting::findPollByID(const char *msgid) const
 // the file), because a ballot's target ("In-Reply-To") is written after its
 // vote lines. This settles the finished section and resets the accumulators.
 
-void qwkVoting::endSection(int kind, char *&target, int &up, int &down,
-                           unsigned &mask, pending *&ballots,
-                           pending *&closes)
+void qwkVoting::endSection()
 {
-    if (target) {
-        if (SK_VOTE == kind) {
-            if (mask) {
+    if (secTarget) {
+        if (SK_VOTE == sectKind) {
+            if (secMask) {
                 pending *b = new pending;
-                b->msgid = target;
-                b->mask = mask;
+                b->msgid = secTarget;
+                b->mask = secMask;
                 b->next = ballots;
                 ballots = b;
-                target = 0;         // the pending entry owns it now
-            } else if (up || down)
-                add(target, up, down);
-        } else if (SK_CLOSE == kind) {
+                secTarget = 0;      // the pending entry owns it now
+            } else if (secUp || secDown)
+                add(secTarget, secUp, secDown);
+        } else if (SK_CLOSE == sectKind) {
             pending *b = new pending;
-            b->msgid = target;
+            b->msgid = secTarget;
             b->mask = 0;
             b->next = closes;
             closes = b;
-            target = 0;
+            secTarget = 0;
         }
     }
 
-    delete[] target;
-    target = 0;
-    up = down = 0;
-    mask = 0;
+    delete[] secTarget;
+    secTarget = 0;
+    secUp = secDown = 0;
+    secMask = 0;
 }
 
 void qwkVoting::parse(const char *text)
@@ -176,125 +182,129 @@ void qwkVoting::parse(const char *text)
     char *work = strdupplus(text);
     char *line = work;
 
-    int kind = SK_OTHER;
-
-    unsigned long marker = 0;
-    int up = 0, down = 0;
-    unsigned mask = 0;
-    char *target = 0;
-    poll *cur = 0, *tail = 0;
-    pending *ballots = 0, *closes = 0;
-
     while (line) {
         char *nl = strchr(line, '\n');
         if (nl)
             *nl = '\0';
 
-        char *t = iniTrim(line);
-
-        if (*t == '[') {
-            char *close = strchr(t, ']');
-            if (close) {
-                *close = '\0';
-
-                endSection(kind, target, up, down, mask, ballots, closes);
-                cur = 0;
-
-                // Section names are "vote:<id>", "poll:<id>" or "close:<id>".
-                // Anything without a colon is a "[<hex offset>]" marker,
-                // which names the record the next section belongs to.
-                char *sep = strchr(t + 1, ':');
-                if (!sep) {
-                    marker = strtoul(t + 1, 0, 16);
-                    kind = SK_OTHER;
-                } else {
-                    *sep = '\0';
-                    if (iniKeyEq(t + 1, "vote"))
-                        kind = SK_VOTE;
-                    else if (iniKeyEq(t + 1, "close"))
-                        kind = SK_CLOSE;
-                    else if (iniKeyEq(t + 1, "poll")) {
-                        kind = SK_POLL;
-                        cur = new poll;
-                        cur->offset = marker;
-                        cur->msgid = strdupplus(sep + 1);
-                        cur->subject = 0;
-                        cur->maxVotes = 1;
-                        cur->results = 0;
-                        cur->ballots = 0;
-                        cur->noOfAnswers = 0;
-                        cur->utf8 = false;
-                        cur->comments = 0;
-                        cur->next = 0;
-                        if (tail)
-                            tail->next = cur;
-                        else
-                            polls = cur;
-                        tail = cur;
-                        noPolls++;
-                    } else
-                        kind = SK_OTHER;
-                }
-            }
-        } else if (*t && (SK_OTHER != kind)) {
-            char *key, *value;
-            if (iniSplit(t, key, value)) {
-                if (SK_VOTE == kind || SK_CLOSE == kind) {
-                    if (iniKeyEq(key, "In-Reply-To")) {
-                        delete[] target;
-                        target = strdupplus(value);
-                    } else if (iniKeyEq(key, "UpVote")) {
-                        if (iniKeyEq(value, "true"))
-                            up++;
-                    } else if (iniKeyEq(key, "DownVote")) {
-                        if (iniKeyEq(value, "true"))
-                            down++;
-                    } else if (iniKeyEq(key, "Votes"))
-                        // A bit-field over the poll's answers, written in hex
-                        // with an "0x" prefix that strtoul understands.
-                        mask = (unsigned) strtoul(value, 0, 16);
-                } else if (iniKeyEq(key, "Utf8")) {
-                    // Checked before splitIndex(), which would eat the '8'.
-                    if (iniKeyEq(value, "true"))
-                        cur->utf8 = true;
-                } else {
-                    int n = splitIndex(key);
-
-                    if (iniKeyEq(key, "Subject")) {
-                        delete[] cur->subject;
-                        cur->subject = strdupplus(value);
-                    } else if (iniKeyEq(key, "MaxVotes"))
-                        cur->maxVotes = atoi(value);
-                    else if (iniKeyEq(key, "Results"))
-                        cur->results = atoi(value);
-                    else if (iniKeyEq(key, "PollAnswer")) {
-                        // The ballot bit-field is indexed by this number, so
-                        // place the answer by it rather than by arrival.
-                        if (n < MAXANSWERS) {
-                            while (cur->noOfAnswers <= n) {
-                                cur->answers[cur->noOfAnswers] = 0;
-                                cur->answerVotes[cur->noOfAnswers++] = 0;
-                            }
-                            delete[] cur->answers[n];
-                            cur->answers[n] = strdupplus(value);
-                        }
-                    } else if (iniKeyEq(key, "Comment")) {
-                        comment *c = new comment;
-                        c->text = strdupplus(value);
-                        c->next = 0;
-                        comment **at = &cur->comments;
-                        while (*at)
-                            at = &(*at)->next;
-                        *at = c;
-                    }
-                }
-            }
-        }
+        parseLine(line);
 
         line = nl ? (nl + 1) : 0;
     }
 
-    endSection(kind, target, up, down, mask, ballots, closes);
+    finish();
+    delete[] work;
+}
+
+void qwkVoting::parseLine(char *line)
+{
+    char *t = iniTrim(line);
+
+    if (*t == '[') {
+        char *close = strchr(t, ']');
+        if (close) {
+            *close = '\0';
+
+            endSection();
+            curPoll = 0;
+
+            // Section names are "vote:<id>", "poll:<id>" or "close:<id>".
+            // Anything without a colon is a "[<hex offset>]" marker,
+            // which names the record the next section belongs to.
+            char *sep = strchr(t + 1, ':');
+            if (!sep) {
+                marker = strtoul(t + 1, 0, 16);
+                sectKind = SK_OTHER;
+            } else {
+                *sep = '\0';
+                if (iniKeyEq(t + 1, "vote"))
+                    sectKind = SK_VOTE;
+                else if (iniKeyEq(t + 1, "close"))
+                    sectKind = SK_CLOSE;
+                else if (iniKeyEq(t + 1, "poll")) {
+                    sectKind = SK_POLL;
+                    curPoll = new poll;
+                    curPoll->offset = marker;
+                    curPoll->msgid = strdupplus(sep + 1);
+                    curPoll->subject = 0;
+                    curPoll->maxVotes = 1;
+                    curPoll->results = 0;
+                    curPoll->ballots = 0;
+                    curPoll->noOfAnswers = 0;
+                    curPoll->utf8 = false;
+                    curPoll->comments = 0;
+                    curPoll->next = 0;
+                    if (lastPoll)
+                        lastPoll->next = curPoll;
+                    else
+                        polls = curPoll;
+                    lastPoll = curPoll;
+                    noPolls++;
+                } else
+                    sectKind = SK_OTHER;
+            }
+        }
+    } else if (*t && (SK_OTHER != sectKind)) {
+        char *key, *value;
+        if (iniSplit(t, key, value)) {
+            if (SK_VOTE == sectKind || SK_CLOSE == sectKind) {
+                if (iniKeyEq(key, "In-Reply-To")) {
+                    delete[] secTarget;
+                    secTarget = strdupplus(value);
+                } else if (iniKeyEq(key, "UpVote")) {
+                    if (iniKeyEq(value, "true"))
+                        secUp++;
+                } else if (iniKeyEq(key, "DownVote")) {
+                    if (iniKeyEq(value, "true"))
+                        secDown++;
+                } else if (iniKeyEq(key, "Votes"))
+                    // A bit-field over the poll's answers, written in hex
+                    // with an "0x" prefix that strtoul understands.
+                    secMask = (unsigned) strtoul(value, 0, 16);
+            } else if (iniKeyEq(key, "Utf8")) {
+                // Checked before splitIndex(), which would eat the '8'.
+                if (iniKeyEq(value, "true"))
+                    curPoll->utf8 = true;
+            } else {
+                int n = splitIndex(key);
+
+                if (iniKeyEq(key, "Subject")) {
+                    delete[] curPoll->subject;
+                    curPoll->subject = strdupplus(value);
+                } else if (iniKeyEq(key, "MaxVotes"))
+                    curPoll->maxVotes = atoi(value);
+                else if (iniKeyEq(key, "Results"))
+                    curPoll->results = atoi(value);
+                else if (iniKeyEq(key, "PollAnswer")) {
+                    // The ballot bit-field is indexed by this number, so
+                    // place the answer by it rather than by arrival.
+                    if (n < MAXANSWERS) {
+                        while (curPoll->noOfAnswers <= n) {
+                            curPoll->answers[curPoll->noOfAnswers] = 0;
+                            curPoll->answerVotes[curPoll->noOfAnswers++] = 0;
+                        }
+                        delete[] curPoll->answers[n];
+                        curPoll->answers[n] = strdupplus(value);
+                    }
+                } else if (iniKeyEq(key, "Comment")) {
+                    comment *c = new comment;
+                    c->text = strdupplus(value);
+                    c->next = 0;
+                    comment **at = &curPoll->comments;
+                    while (*at)
+                        at = &(*at)->next;
+                    *at = c;
+                }
+            }
+        }
+    }
+}
+
+void qwkVoting::finish()
+{
+    endSection();
+    curPoll = 0;
+    sectKind = SK_OTHER;
 
     // Poll ballots are resolved last: a ballot may be written before the poll
     // it selects answers in.
@@ -322,8 +332,6 @@ void qwkVoting::parse(const char *text)
         delete closes;
         closes = next;
     }
-
-    delete[] work;
 }
 
 bool qwkVoting::any() const
