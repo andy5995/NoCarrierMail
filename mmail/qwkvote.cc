@@ -174,26 +174,15 @@ void qwkVoting::endSection()
     secMask = 0;
 }
 
-void qwkVoting::parse(const char *text)
+void qwkVoting::read(FILE *f)
 {
-    if (!text)
-        return;
+    char *line = new char[INILINE];
 
-    char *work = strdupplus(text);
-    char *line = work;
-
-    while (line) {
-        char *nl = strchr(line, '\n');
-        if (nl)
-            *nl = '\0';
-
+    while (iniReadLine(f, line, INILINE))
         parseLine(line);
-
-        line = nl ? (nl + 1) : 0;
-    }
-
     finish();
-    delete[] work;
+
+    delete[] line;
 }
 
 void qwkVoting::parseLine(char *line)

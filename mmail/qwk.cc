@@ -291,31 +291,18 @@ void qwkpack::readIndices()
 
 void qwkpack::loadHeaders()
 {
-    static const char *const used[] = {
-        "Utf8", "Sender", "To", "Subject", "Message-ID", 0
-    };
-
     FILE *f = mm.workList->ftryopen("headers.dat");
 
-    if (f) {
-        headers.keepOnly(used);
+    if (f)
         headers.open(f);
-    }
 }
-
-enum { INILINE = 1024 };
 
 void qwkpack::loadVoting()
 {
     FILE *f = mm.workList->ftryopen("voting.dat");
 
-    // Read a line at a time: a 16-bit build cannot hold a big one whole.
     if (f) {
-        char *buf = new char[INILINE];
-        while (iniReadLine(f, buf, INILINE))
-            votes.parseLine(buf);
-        votes.finish();
-        delete[] buf;
+        votes.read(f);
         fclose(f);
     }
 }

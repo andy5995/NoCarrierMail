@@ -68,13 +68,17 @@ bool iniReadLine(FILE *f, char *buf, int size)
     return true;
 }
 
+bool iniSection(const char *t)
+{
+    return (*t == '[') && strchr(t, ']');
+}
+
 qwkHeaders::qwkHeaders()
 {
     first = last = 0;
     sorted = true;
     file = 0;
     line = 0;
-    wanted = 0;
     loaded = false;
     loadedOffset = 0;
     fields = 0;
@@ -93,23 +97,18 @@ qwkHeaders::~qwkHeaders()
         fclose(file);
 }
 
-void qwkHeaders::keepOnly(const char *const *keys)
-{
-    wanted = keys;
-}
-
 void qwkHeaders::open(FILE *f)
 {
     file = f;
-    line = new char[LINELEN];
+    line = new char[INILINE];
 
     unsigned long prev = 0;
     long pos = ftell(file);
-    while (iniReadLine(file, line, LINELEN)) {
+    while (iniReadLine(file, line, INILINE)) {
         char *t = iniTrim(line);
 
         // Section header: [<hex offset into MESSAGES.DAT>]
-        if ((*t == '[') && strchr(t, ']')) {
+        if (iniSection(t)) {
             unsigned long offset = strtoul(t + 1, 0, 16);
 
             if (last && (offset <= prev))
@@ -187,14 +186,6 @@ void qwkHeaders::addField(char *t)
     if (!iniSplit(t, key, value) || !*key)
         return;
 
-    if (wanted) {
-        bool keep = false;
-        for (const char *const *w = wanted; *w && !keep; w++)
-            keep = iniKeyEq(key, *w);
-        if (!keep)
-            return;
-    }
-
     field *f = new field;
     f->key = strdupplus(key);
     f->value = strdupplus(value);
@@ -213,12 +204,12 @@ void qwkHeaders::load(unsigned long offset)
     if ((pos < 0) || fseek(file, pos, SEEK_SET))
         return;
 
-    if (!iniReadLine(file, line, LINELEN))
+    if (!iniReadLine(file, line, INILINE))
         return;
-    while (iniReadLine(file, line, LINELEN)) {
+    while (iniReadLine(file, line, INILINE)) {
         char *t = iniTrim(line);
 
-        if (*t == '[')
+        if (iniSection(t))
             break;
         if (*t)
             addField(t);

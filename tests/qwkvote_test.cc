@@ -11,22 +11,15 @@ extern "C" {
 #include <ctype.h>
 }
 
-// Feed text to parseLine() the way qwkpack::loadVoting() does: one line at a
-// time, each keeping its newline, as fgets() leaves it.
-static void feedLines(qwkVoting &v, const char *text)
+// Read text as VOTING.DAT, through a temporary file as the reader does.
+static void readText(qwkVoting &v, const char *text)
 {
-    char line[256];
+    FILE *f = tmpfile();
 
-    while (*text) {
-        const char *nl = strchr(text, '\n');
-        size_t len = nl ? (size_t) (nl - text + 1) : strlen(text);
-
-        memcpy(line, text, len);
-        line[len] = '\0';
-        v.parseLine(line);
-        text += len;
-    }
-    v.finish();
+    fputs(text, f);
+    rewind(f);
+    v.read(f);
+    fclose(f);
 }
 
 int main()
@@ -64,7 +57,7 @@ int main()
         "\r\n";
 
     qwkVoting v;
-    v.parse(sample);
+    readText(v, sample);
     CHECK(v.any());
 
     int up, down;
@@ -125,7 +118,7 @@ int main()
         "\r\n";
 
     qwkVoting p;
-    p.parse(polls);
+    readText(p, polls);
     CHECK(!p.any());
     p.get("<POLL.1@vert.synchro.net>", up, down);
     CHECK(up == 0);
@@ -151,16 +144,6 @@ int main()
     CHECK(strstr(body, "  Yes                                  0\n") != 0);
     CHECK(strstr(body, "  No         ########################  1\n") != 0);
     CHECK(strstr(body, "  Used to be                           0\n") != 0);
-
-    // Read a line at a time, the same file gives the same poll, with the
-    // ballot and the closure applied after the last line.
-    qwkVoting pl;
-    feedLines(pl, polls);
-    CHECK(pl.getNoOfPolls() == 1);
-    char *bodyl = pl.getPollText(0x100, true);
-    CHECK(bodyl != 0);
-    CHECK_STR(bodyl, body);
-    delete[] bodyl;
     delete[] body;
 
     CHECK(p.getPollText(0x999, true) == 0);
@@ -189,7 +172,7 @@ int main()
         "\r\n";
 
     qwkVoting m;
-    m.parse(multi);
+    readText(m, multi);
     CHECK(m.getNoOfPolls() == 1);
     CHECK(m.isPoll(0x80));
 
@@ -216,7 +199,7 @@ int main()
         "Utf8 = true\r\n";
 
     qwkVoting u;
-    u.parse(upoll);
+    readText(u, upoll);
     char *usubj = u.getPollSubject(0x20, true);
     CHECK_STR(usubj, "d\xE9j\xE0 vu?");
     delete[] usubj;
@@ -238,7 +221,7 @@ int main()
         "PollAnswer0 = Only option\r\n";
 
     qwkVoting one;
-    one.parse(lonely);
+    readText(one, lonely);
     char *lbody = one.getPollText(0x40, true);
     CHECK(lbody != 0);
     CHECK(strstr(lbody, "Only option") != 0);
@@ -254,7 +237,7 @@ int main()
         "UpVote = true\r\n";
 
     qwkVoting o;
-    o.parse(orphan);
+    readText(o, orphan);
     CHECK(!o.any());
 
     // LF-only line endings, "UpVote: true" spelt with the other separator,
@@ -266,7 +249,7 @@ int main()
         "UpVote: true";
 
     qwkVoting l;
-    l.parse(lf);
+    readText(l, lf);
     l.get("<TARGET.2@vert>", up, down);
     CHECK(up == 1);
     CHECK(down == 0);
@@ -279,7 +262,7 @@ int main()
         "UpVote = false\n";
 
     qwkVoting n;
-    n.parse(no);
+    readText(n, no);
     CHECK(!n.any());
 
     // qwkVoteDate: "YYYYMMDDHHMMSS+hhmm" -- 19 chars, all digits except the
@@ -299,9 +282,8 @@ int main()
 
     // Parsing empty / null input is harmless
     qwkVoting empty;
-    empty.parse("");
+    readText(empty, "");
     CHECK(!empty.any());
-    empty.parse(0);
     empty.get("<anything>", up, down);
     CHECK(up == 0);
 

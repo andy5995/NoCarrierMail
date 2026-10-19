@@ -35,9 +35,13 @@ bool iniSplit(char *line, char *&key, char *&value);
 // Read one line into buf (size bytes), newline kept; the rest of a line too
 // long for buf is skipped. Returns false at the end of the file.
 bool iniReadLine(FILE *f, char *buf, int size);
+// Line buffer size both parsers pass to iniReadLine()
+enum { INILINE = 1024 };
+// Is this trimmed line a "[...]" section header?
+bool iniSection(const char *);
 
 class qwkHeaders {
-    enum { CHUNK = 256, LINELEN = 1024 };
+    enum { CHUNK = 256 };
 
     // The index, in chunks so that no one block passes 64 KB on a 16-bit
     // build. Synchronet writes the sections in offset order, which allows
@@ -57,7 +61,6 @@ class qwkHeaders {
     bool sorted;
     FILE *file;
     char *line;
-    const char *const *wanted;
 
     // The one section held in memory, the last one asked for
     bool loaded;
@@ -72,10 +75,6 @@ class qwkHeaders {
  public:
     qwkHeaders();
     ~qwkHeaders();
-
-    // Read only these keys (a null-terminated list, which must outlive the
-    // object); by default every key is read.
-    void keepOnly(const char *const *keys);
 
     // Index an open HEADERS.DAT. The file stays open, and this object
     // closes it.

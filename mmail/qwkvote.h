@@ -8,6 +8,7 @@
 #define QWKVOTE_H
 
 extern "C" {
+#include <stdio.h>
 #include <time.h>
 }
 
@@ -87,19 +88,16 @@ class qwkVoting {
     poll *findPoll(unsigned long) const;
     poll *findPollByID(const char *) const;
     void endSection();
+    void parseLine(char *);
+    void finish();
 
  public:
     qwkVoting();
     ~qwkVoting();
 
-    // Parse null-terminated VOTING.DAT text into this object.
-    void parse(const char *text);
-
-    // The same a line at a time (each modified in place), for a file too big
-    // to hold in one block on a 16-bit build. Call finish() after the last
-    // line; nothing parsed this way is usable before that.
-    void parseLine(char *line);
-    void finish();
+    // Parse an open VOTING.DAT into this object, a line at a time so that a
+    // big one fits a 16-bit build. The caller closes the file.
+    void read(FILE *f);
 
     // Did the packet ship a VOTING.DAT with any usable ballots?
     bool any() const;

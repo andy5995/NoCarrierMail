@@ -30,7 +30,7 @@ int main()
         "WhenWritten:  Fri Jun 05 12:34:56 2026 0000\r\n"
         "Sender: Digital Man\r\n"
         "Subject: longer than the 25-char MESSAGES.DAT field = yes\r\n"
-        "Recipient: All\r\n"
+        "To: All\r\n"
         "Conference: 12\r\n"
         "\r\n"
         "[2b00]\r\n"
@@ -50,7 +50,7 @@ int main()
 
     // Full (untruncated) RFC-style ':' fields
     CHECK_STR(h.get(0x1a80, "Sender"), "Digital Man");
-    CHECK_STR(h.get(0x1a80, "Recipient"), "All");
+    CHECK_STR(h.get(0x1a80, "To"), "All");
     CHECK_STR(h.get(0x1a80, "Conference"), "12");
 
     // ini-style '=' fields
@@ -84,16 +84,10 @@ int main()
     CHECK_STR(h.get(0x1a80, "Subject"),
               "longer than the 25-char MESSAGES.DAT field = yes");
 
-    // keepOnly(): unlisted keys are not stored, matched case-insensitively.
-    static const char *const used[] = { "sender", "Utf8", 0 };
-    qwkHeaders k;
-    k.keepOnly(used);
-    openText(k, sample);
-    CHECK(k.has(0x2b00));
-    CHECK_STR(k.get(0x1a80, "Sender"), "Digital Man");
-    CHECK_STR(k.get(0x1a80, "Utf8"), "true");
-    CHECK(!k.get(0x1a80, "Subject"));
-    CHECK(!k.get(0x2b00, "Subject"));
+    // A "[" line with no "]" is not a section, and does not end one
+    qwkHeaders b;
+    openText(b, "[100]\n[not a header\nSender: A\n");
+    CHECK_STR(b.get(0x100, "Sender"), "A");
 
     // Sections out of offset order are still found.
     qwkHeaders u;
