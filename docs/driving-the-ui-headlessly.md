@@ -200,6 +200,13 @@ For a full pass, copy `NCMAIL.EXE` and a packet into a directory under
   directory to the DOS `PATH`.
 - **On DOS the settings file is written next to the program**, not in a home
   directory, so each test directory gets its own `ncmail.rc`.
+- **Text typed straight after a prompt opens is often lost.** The search
+  prompt (`/`) regularly dropped the first word sent to it under dosemu2.
+  Capture the pane and check the prompt shows the text before sending `Enter`,
+  and type it again if it does not.
+- **Quitting saves the last-read flags by running the archiver**, so a quit
+  that shows "Could not save last read" usually means DOS had too little free
+  memory left to load it.
 
 A pass is complete when the packet list, the area list, the letter list, a
 message body and the ANSI viewer have all been seen, and quitting removes the
