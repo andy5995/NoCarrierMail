@@ -1,8 +1,8 @@
 Revision History
 ================
 
-(in-progress)
--------------
+0.55 - 2026-10-20
+-----------------
 
 - CTRL-P opens your settings file in your editor from inside the program.
   Most settings you change there take effect when you leave the editor; the
