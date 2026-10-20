@@ -2,12 +2,13 @@
 #define STR(x) STRingize(x)
 
 #define MM_MAJOR 0
-#define MM_MINOR 55
+#define MM_MINOR 56
 #define MM_YEAR "2026"
 
 #define MM_NAME "NoCarrierMail"
 #define MM_SNAME "NCMail"
-#define MM_VERNUM STR(MM_MAJOR) "." STR(MM_MINOR)
+#define MM_SUFFIX "-dev"  /* "" in a release commit */
+#define MM_VERNUM STR(MM_MAJOR) "." STR(MM_MINOR) MM_SUFFIX
 #define MM_TOPHEADER MM_NAME "/%.16s v" MM_VERNUM
 
 /* These three are on by default. The build system can turn any of them

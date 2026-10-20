@@ -458,7 +458,7 @@ const char *pktbase::getTear(int)
 {
     static char tear[80];
 
-    sprintf(tear, "--- " MM_NAME "/%.54s v" MM_VERNUM, sysname());
+    sprintf(tear, "--- " MM_NAME "/%.50s v" MM_VERNUM, sysname());
 
     return tear;
 }
