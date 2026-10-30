@@ -1125,6 +1125,8 @@ void Interface::KeyHandle()  // Main loop
                     case MM_LEFT:
                     case MM_PLUS:
                     case MM_MINUS:
+                    case 'V':
+                    case 1:     // Ctrl-A
                         end = back();
                         break;
                     default:

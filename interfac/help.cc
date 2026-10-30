@@ -106,7 +106,7 @@ static const helpitem hi_lettercommon[] = {
     {"^T", "Tagline editor"},
     {"^F", "Forward letter"},
     {"F2, !", "Make reply packet"},
-    {"V, ^V, ^A", "ANSI viewer"},
+    {"V, ^A", "ANSI viewer"},
     {"/", "start a search"},
     {".", "repeat last search"},
     {"-", "previous letter"},
@@ -148,7 +148,7 @@ static const helpitem hi_ansi[] = {
     {"1", "toggle Synchronet codes"},
     {"^V", "toggle AVATAR parsing"},
     {"^B", "toggle BSAVE parsing"},
-    {"Q", "Quit ANSI viewer"}
+    {"Q, V, ^A", "Quit ANSI viewer"}
 };
 
 static const helpitem hi_address[] = {

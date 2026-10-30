@@ -1160,7 +1160,6 @@ void LetterWindow::KeyHandle(int key)
         break;
     case 'V':
     case 1:                             // Ctrl-A
-    case 11:                            // Ctrl-V
         {
             int nextAns;
             bool cont = false;

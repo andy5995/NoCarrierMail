@@ -321,8 +321,8 @@ ANSI VIEWER
 
 If a message contains ANSI color codes, you may be able to view it as
 originally intended by activating the ANSI viewer. Press 'v' to start
-it. Press 'q' to leave the ANSI viewer; the navigation keys are the same
-as in the mail-reading window.
+it. Press 'q' or 'v' to leave the ANSI viewer; the navigation keys are
+the same as in the mail-reading window.
 
 ANSI art is drawn for a screen 80 columns wide. The viewer holds the
 picture to 80 columns and centres it in a wider window. In a narrower

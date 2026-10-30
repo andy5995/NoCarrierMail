@@ -4,6 +4,8 @@ Revision History
 (in-progress)
 -------------
 
+- 'V' (or CTRL-A) now leaves the ANSI viewer as well as starting it.
+
 0.55 - 2026-10-20
 -----------------
 
