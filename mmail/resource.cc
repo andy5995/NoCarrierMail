@@ -262,8 +262,7 @@ bool baseconfig::updateConfig(const char *configname)
         line = next;
     }
 
-    delete[] old;
-
+    const char *stop = line;    // short of old + len if the file holds a NUL
     int added = 0;
 
     for (int x = 0; x < configItemNum; x++)
@@ -278,8 +277,26 @@ bool baseconfig::updateConfig(const char *configname)
 
     fclose(fd);
 
-    printf("%d keyword%s added, %d commented out.\n", added,
-           (1 == added) ? "" : "s", commented);
+    if (added) {
+        puts("Keywords added:");
+        for (int x = 0; x < configItemNum; x++)
+            if (!seen[x])
+                printf("  %s\n", names[x]);
+    }
+
+    if (commented) {
+        // The loop above split the buffer into lines at each '\n'.
+        puts("Keywords commented out:");
+        for (line = old; line < stop; line += strlen(line) + 1) {
+            int namelen;
+            char *name = keywordOf(line, &namelen);
+
+            if (name && (findKeyword(name, namelen) < 0))
+                printf("  %.*s\n", namelen, name);
+        }
+    }
+
+    delete[] old;
 
     return false;
 }
