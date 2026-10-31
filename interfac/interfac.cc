@@ -37,6 +37,7 @@ void Interface::init()
     alive();
     screen_init();
     ansiwindow.Init();
+    settingsNotice();
 }
 
 void Interface::main()
@@ -275,7 +276,9 @@ bool Interface::confirmDelete(const char *prompt)
     return !WarningWindow(prompt, noyes);
 }
 
-int Interface::savePrompt(const char *prompt1, char *filename)
+// maxlen is what filename has room for, less the terminator; the field
+// scrolls past 54.
+int Interface::savePrompt(const char *prompt1, char *filename, int maxlen)
 {
     ShadowedWin question(5, 60, (LINES >> 1) - 3, C_LLSAVEBORD);
     question.attrib(C_LLSAVETEXT);
@@ -284,7 +287,8 @@ int Interface::savePrompt(const char *prompt1, char *filename)
     question.put(2, 57, ">");
     question.put(3, 38, "<ESC> to cancel");
 
-    return question.getstring(2, 3, filename, 54, C_LLSAVETEXT, C_LLSAVEGET);
+    return question.getstring(2, 3, filename, maxlen, C_LLSAVETEXT,
+                              C_LLSAVEGET);
 }
 
 void Interface::nonFatalError(const char *warn)
@@ -725,6 +729,183 @@ void Interface::editSettings()
                     deferred - 1);
         nonFatalError(msg);
     }
+}
+
+/* How many names are in list (each ends in \n), and the length of the
+   longest. */
+static int countNames(const char *list, int &widest)
+{
+    int n = 0;
+
+    widest = 0;
+    for (const char *p = list; p && *p; p = strchr(p, '\n') + 1) {
+        int len = (int) strcspn(p, "\n");
+        if (len > widest)
+            widest = len;
+        n++;
+    }
+    return n;
+}
+
+enum {maxNames = 64};   // shown per list; the rest are only counted
+
+// Room listNames() needs for list under a heading, terminator not included.
+static size_t listRoom(const char *list)
+{
+    int widest, n = countNames(list, widest);
+
+    if (n > maxNames)
+        n = maxNames;
+    // A row is " " and "\n", a name " " and up to widest + 1; rows <= names.
+    return list ? (size_t) n * (widest + 4) + 80 : 0;
+}
+
+/* A heading and the names in list at t, indented, one to a line; a long list
+   goes down several columns instead, to fit on the screen. Returns the new
+   end of t. */
+static char *listNames(char *t, const char *label, const char *list)
+{
+    if (!list)
+        return t;
+
+    int widest, total = countNames(list, widest);
+    int n = (total > maxNames) ? maxNames : total;
+    const char *name[maxNames];
+    int len[maxNames];
+
+    const char *p = list;
+    for (int i = 0; i < n; i++, p = strchr(p, '\n') + 1) {
+        name[i] = p;
+        len[i] = (int) strcspn(p, "\n");
+    }
+
+    int cols = (n > 6) ? (COLS - 8) / (widest + 2) : 1;
+    if (cols < 1)
+        cols = 1;
+    int rows = (n + cols - 1) / cols;
+
+    t += sprintf(t, "\n%.40s\n", label);
+    for (int r = 0; r < rows; r++) {
+        t += sprintf(t, " ");
+        for (int c = r; c < n; c += rows)
+            t += sprintf(t, " %-*.*s", (c + rows < n) ? widest + 1 : 0,
+                         len[c], name[c]);
+        t += sprintf(t, "\n");
+    }
+    if (total > n)
+        t += sprintf(t, "  ...and %d more\n", total - n);
+    return t;
+}
+
+/* Show text, a line to each \n, in a window, until a key is pressed. Lines
+   that do not fit are left off and counted on the last one. */
+static void textWindow(const char *text)
+{
+    int lines = 0, widest = 0;
+
+    for (const char *p = text; *p; p = strchr(p, '\n') + 1) {
+        int len = (int) strcspn(p, "\n");
+        if (len > widest)
+            widest = len;
+        lines++;
+    }
+
+    int room = LINES - 6, shown = (lines > room) ? room - 1 : lines;
+    int width = widest + 4;
+    if (width > COLS - 2)
+        width = COLS - 2;
+
+    int height = ((lines > room) ? room : lines) + 4;
+    ShadowedWin win(height, width, (LINES - height) >> 1, C_WTEXT);
+
+    const char *p = text;
+    for (int i = 0; i < shown; i++, p = strchr(p, '\n') + 1) {
+        int len = (int) strcspn(p, "\n");
+        win.put(i + 1, 2, p, (len > width - 4) ? width - 4 : len);
+    }
+    if (shown < lines) {
+        char more[40];
+        sprintf(more, "  (%d more lines)", lines - shown);
+        win.put(shown + 1, 2, more);
+    }
+    win.put(height - 2, width - 16, "Press any key");
+    win.update();
+
+    while (ERR == win.inkey())
+        ;
+}
+
+/* What mm.res.init() did to the settings file, before the screen was up: on a
+   first run it wrote a new one, which still wants an editor chosen; on an
+   upgrade it added keywords and commented some out. Either way, offer to edit
+   it. A held keyword changed then waits for the next start, as with CTRL-P.
+   An update to the color file, which colorlist.Init() makes, is shown too. */
+void Interface::settingsNotice()
+{
+    bool created = mm.res.isNew();
+    const char *added = mm.res.addedKeywords(),
+        *dropped = mm.res.droppedKeywords(),
+        *cadded = colorlist.addedKeywords(),
+        *cdropped = colorlist.droppedKeywords();
+    bool rcChanged = created || added || dropped;
+
+    if (!rcChanged && !cadded && !cdropped)
+        return;
+
+    char *path = mm.res.configName();
+    const char *colorpath = mm.res.get(ColorFile);
+    size_t room = 512 + strlen(path) + strlen(colorpath) + listRoom(added) +
+        listRoom(dropped) + listRoom(cadded) + listRoom(cdropped);
+    char *text = new char[room], *t = text;
+
+    t += sprintf(t, "Welcome to " MM_NAME " v" MM_VERNUM "!\n\n");
+    if (created)
+        t += sprintf(t, "A new " RCNAME " has been written, with default "
+                     "values\nfor everything:\n  %s\n\nNext, choose the "
+                     "editor for letters and settings."
+#ifndef PLAIN_DOS
+                     " A\nwindowed editor must keep running until you close "
+                     "it,\nfor example \"code --wait\"."
+#endif
+                     "\n", path);
+    else
+        if (rcChanged) {
+            t += sprintf(t, "Your " RCNAME " has been updated in place:\n"
+                         "  %s\n", path);
+            t = listNames(t, "Keywords added:", added);
+            t = listNames(t, "Keywords commented out:", dropped);
+        }
+    if (cadded || cdropped) {
+        t += sprintf(t, "%sYour color file has been updated in place:\n  %s\n",
+                     rcChanged ? "\n" : "", colorpath);
+        t = listNames(t, "Keywords added:", cadded);
+        t = listNames(t, "Keywords commented out:", cdropped);
+    }
+    if (!created || cadded || cdropped)
+        sprintf(t, "\nEverything else was left as you had it.\n");
+    delete[] path;
+
+    textWindow(text);
+    delete[] text;
+    screen->wtouch();
+
+    if (created) {
+        char buf[256], was[256];
+
+        strnzcpy(buf, mm.res.get(editor), sizeof buf - 1);
+        strcpy(was, buf);
+
+        if (savePrompt("Editor for letters and settings:", buf,
+                       sizeof buf - 1) && strcmp(buf, was)) {
+            mm.res.set(editor, buf);
+            if (!mm.res.saveSetting(editor))
+                nonFatalError("Could not save the editor to " RCNAME);
+        }
+        screen->wtouch();
+    }
+
+    if (rcChanged && WarningWindow("Edit " RCNAME " now?"))
+        editSettings();
 }
 
 bool Interface::Tagwin()

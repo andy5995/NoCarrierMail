@@ -45,9 +45,11 @@ Capture the pane, read where the cursor actually is, then send the next key.
   only in `capture-pane -ep` output, as a reverse-video attribute; the plain text
   capture drops it. Landing on the neighbouring item gives a screen that looks
   plausible and is wrong.
-- **First-run prompts fire once.** The "a new .ncmailrc has been written, edit it
-  now?" prompt appears on the first run and not the second, so a fixed sequence
-  shifts by one key and every later step lands somewhere unintended.
+- **First-run prompts fire once.** On the first run, and after an upgrade adds
+  keywords, the program opens with a notice (any key), then on a first run an
+  editor prompt (`Enter` keeps the one shown), then "Edit .ncmailrc now?"
+  (`n`). None of these appears on the next run, so a fixed sequence shifts and
+  every later step lands somewhere unintended.
 - **A stray key can persist.** The area and letter list modes are written back to
   the rc file, so an accidental `L` leaves the next run in a different view,
   sometimes an empty one.

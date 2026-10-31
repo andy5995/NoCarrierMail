@@ -7,8 +7,9 @@ Revision History
 - New 'G' key in the letter window lists the links in a message and opens
   the one you choose in a browser, set by the new "Browser" keyword.
 - 'V' (or CTRL-A) now leaves the ANSI viewer as well as starting it.
-- When it updates your .ncmailrc, NoCarrierMail now lists the keywords it
-  added and commented out, instead of only counting them.
+- The first-run setup and the .ncmailrc update notice now appear inside the
+  program, not in the terminal before it starts, and the notice lists the
+  keywords it added and commented out.
 
 0.55 - 2026-10-20
 -----------------

@@ -44,11 +44,12 @@ class baseconfig
 
     bool *seen;             //keyword was present in the file we parsed
     bool unknownKeyword;    //file had a keyword this version does not know
-    bool fileFound;         //the last parseConfig() could open its file
     bool quiet;             //don't print: curses has the screen
     const baseconfig *old;  //unknown keywords this one had are not new
     char unknownName[32];   //the first new unknown keyword
     char unknownSeen[256];  //every unknown keyword, each followed by \n
+    char *addedNames;       //what updateConfig() added, each followed by \n
+    char *droppedNames;     //...and commented out; 0 for none
 
     bool hadUnknown(const char *) const;
 
@@ -56,11 +57,15 @@ class baseconfig
     bool parseConfig(const char *);
     bool updateConfig(const char *);
     void newConfig(const char *);
+    bool rewriteKeyword(const char *, int);
+    bool copyLines(FILE *, char *, int);
     virtual void processOne(int, const char *) = 0;
     virtual const char *configLineOut(int) = 0;
  public:
     baseconfig();
     void processOneByName(const char *, const char *);
+    const char *addedKeywords() const;
+    const char *droppedKeywords() const;
     virtual ~baseconfig();
 };
 
@@ -79,6 +84,7 @@ class resource : public baseconfig
     char *resourceData[noOfStrings];
     int resourceInt[(int)noOfResources - (int)noOfStrings];
     bool pathsReady;
+    bool created;                   // init() wrote a new settings file
     bool edited[noOfResources];     // changed by the last editConfig()
 
     void homeInit();
@@ -90,13 +96,13 @@ class resource : public baseconfig
     const char *configLineOut(int);
     bool checkPath(const char *, bool);
     bool verifyPaths();
-    void runEditor(const char *);
-    void askEditor();
     bool sameAs(const resource &, int) const;
  public:
     resource();
     ~resource();
     void init();
+    bool isNew() const;
+    bool saveSetting(int);
     int editConfig(const char *&);
     bool wasEdited(int) const;
     const char *editUnknown() const;

@@ -773,6 +773,7 @@ class Interface
     int ansiCommon();
     void searchNext();
     void searchSet();
+    void settingsNotice();
     void KeyHandle();
  public:
     ColorClass colorlist;
@@ -788,7 +789,7 @@ class Interface
     void close();
     int WarningWindow(const char *, const char ** = 0, int = 2);
     bool confirmDelete(const char *);
-    int savePrompt(const char *, char *);
+    int savePrompt(const char *, char *, int = 54);
     void nonFatalError(const char *);
     void ReportWindow(const char *);
     void changestate(statetype);

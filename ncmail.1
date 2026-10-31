@@ -645,7 +645,8 @@ Note that you can't put white space at the start of one of these
   the editor that's (almost) guaranteed to be available, for a given OS
   (although the Unix "EDITOR" environment variable is checked first),
   and is in no way a preferred editor; you can and should change it.
-  When NoCarrierMail writes a new .ncmailrc, it asks for this first.
+  When NoCarrierMail writes a new .ncmailrc, it asks for this as soon
+  as it starts.
   An editor that opens its own window has to keep running until you
   close it, or NoCarrierMail reads the file back before you have
   written it; some need an option for that, such as "code --wait".
@@ -890,7 +891,10 @@ the old one. No other files are needed. When a new version has keywords
 your .ncmailrc or ColorFile does not, it adds them, with their default
 values. Keywords it no longer has are commented out rather than removed.
 The rest of the file is left exactly as you had it, including your own
-comments and the order of the lines.
+comments and the order of the lines. When it starts, NoCarrierMail lists
+the keywords it added and commented out, and offers to open the file in
+your editor. A change to a setting that is only read at startup, such as
+PacketDir or ColorFile, takes effect the next time you start the program.
 
 .PP
 Nothing is changed, and no prompt appears, when the keywords in the file

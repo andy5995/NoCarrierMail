@@ -71,16 +71,69 @@ baseconfig::baseconfig()
 {
     seen = 0;
     unknownKeyword = false;
-    fileFound = false;
     quiet = false;
     old = 0;
     *unknownName = '\0';
     *unknownSeen = '\0';
+    addedNames = droppedNames = 0;
 }
 
 baseconfig::~baseconfig()
 {
     delete[] seen;
+    delete[] addedNames;
+    delete[] droppedNames;
+}
+
+const char *baseconfig::addedKeywords() const
+{
+    return addedNames;
+}
+
+const char *baseconfig::droppedKeywords() const
+{
+    return droppedNames;
+}
+
+// Add a name, and the \n that ends it, to a list made of them.
+static void addName(char *&list, const char *name, size_t len)
+{
+    size_t had = list ? strlen(list) : 0;
+    char *grown = new char[had + len + 2];
+
+    if (list)
+        memcpy(grown, list, had);
+    memcpy(grown + had, name, len);
+    grown[had + len] = '\n';
+    grown[had + len + 1] = '\0';
+
+    delete[] list;
+    list = grown;
+}
+
+/* An open file, read whole into one string, and its length in len; 0 if it
+   cannot be read. Both callers are about to write it back over itself. */
+static char *readWhole(FILE *fd, size_t &len)
+{
+    fseek(fd, 0, SEEK_END);
+    long size = ftell(fd);
+    rewind(fd);
+
+    size_t room = (size_t) size + 1;
+
+    /* A negative size means it is not a seekable file at all -- fopen("rt")
+       succeeds on a directory, and ColorFile is a path a user can point
+       anywhere. The second test catches a file too big for size_t, which only
+       a 16-bit host would trip over. Either way, leave the file alone. */
+
+    if ((size < 0) || ((long) room != (size + 1)))
+        return 0;
+
+    char *text = new char[room];
+    len = fread(text, 1, room - 1, fd);
+    text[len] = '\0';
+
+    return text;
 }
 
 /* Find the keyword at the start of a config line. Returns 0 for a comment, a
@@ -140,7 +193,6 @@ bool baseconfig::parseConfig(const char *configFileName)
     *unknownSeen = '\0';
 
     configFile = fopen(configFileName, "rt");
-    fileFound = (configFile != 0);
     if (configFile) {
         while (myfgets(buffer, sizeof buffer, configFile)) {
             int namelen;
@@ -189,6 +241,42 @@ bool baseconfig::parseConfig(const char *configFileName)
     return unknownKeyword;
 }
 
+/* Write the lines of text, a file read whole, back out to fd. With x at -1,
+   a keyword this version does not know is commented out and listed; otherwise
+   keyword x's line gets its current value. Every other line is copied. Returns
+   whether keyword x had a line. */
+
+bool baseconfig::copyLines(FILE *fd, char *text, int x)
+{
+    bool replaced = false;
+
+    while (*text) {
+        char *next = strchr(text, '\n');
+
+        if (next)
+            *next++ = '\0';
+        else
+            next = text + strlen(text);
+
+        int namelen;
+        char *name = keywordOf(text, &namelen);
+        int found = name ? findKeyword(name, namelen) : -1;
+
+        if (name && (x < 0) && (found < 0)) {
+            fprintf(fd, "# %s\n", text);
+            addName(droppedNames, name, namelen);
+        } else
+            if (name && (x >= 0) && (found == x)) {
+                fprintf(fd, "%s: %s\n", names[x], configLineOut(x));
+                replaced = true;
+            } else
+                fprintf(fd, "%s\n", text);
+
+        text = next;
+    }
+    return replaced;
+}
+
 /* Update the file in place: append the keywords it does not have, comment out
    the ones this version no longer knows, and copy every other line through
    unchanged. Regenerating the file kept the values of known keywords but threw
@@ -205,30 +293,14 @@ bool baseconfig::updateConfig(const char *configname)
         return true;
     }
 
-    // Read it whole: it is about to be written back over itself.
+    size_t len;
+    char *old = readWhole(fd, len);
 
-    fseek(fd, 0, SEEK_END);
-    long size = ftell(fd);
-    rewind(fd);
-
-    size_t room = (size_t) size + 1;
-
-    /* A negative size means it is not a seekable file at all -- fopen("rt")
-       succeeds on a directory, and ColorFile is a path a user can point
-       anywhere. The second test catches a file too big for size_t, which only
-       a 16-bit host would trip over. Either way, leave the file alone. */
-
-    if ((size < 0) || ((long) room != (size + 1))) {
-        fclose(fd);
+    fclose(fd);
+    if (!old) {
         pauseError("Cannot read config file to update it");
         return false;
     }
-
-    char *old = new char[room];
-    size_t len = fread(old, 1, room - 1, fd);
-
-    old[len] = '\0';
-    fclose(fd);
 
     fd = fopen(configname, "wt");
     if (!fd) {
@@ -237,76 +309,56 @@ bool baseconfig::updateConfig(const char *configname)
         return false;
     }
 
-    printf("Updating %s...\n", configname);
-
-    int commented = 0;
-    char *line = old;
-
-    while (*line) {
-        char *next = strchr(line, '\n');
-
-        if (next)
-            *next++ = '\0';
-        else
-            next = line + strlen(line);
-
-        int namelen;
-        char *name = keywordOf(line, &namelen);
-
-        if (name && (findKeyword(name, namelen) < 0)) {
-            fprintf(fd, "# %s\n", line);
-            commented++;
-        } else
-            fprintf(fd, "%s\n", line);
-
-        line = next;
-    }
-
-    const char *stop = line;    // short of old + len if the file holds a NUL
-    int added = 0;
+    copyLines(fd, old, -1);
 
     for (int x = 0; x < configItemNum; x++)
         if (!seen[x]) {
-            if (!added)
+            if (!addedNames)
                 fprintf(fd, "\n# Added by " MM_NAME " v" MM_VERNUM ":\n");
             if (comments[x])
                 fprintf(fd, "\n# %s\n", comments[x]);
             fprintf(fd, "%s: %s\n", names[x], configLineOut(x));
-            added++;
+            addName(addedNames, names[x], strlen(names[x]));
         }
 
     fclose(fd);
-
-    if (added) {
-        puts("Keywords added:");
-        for (int x = 0; x < configItemNum; x++)
-            if (!seen[x])
-                printf("  %s\n", names[x]);
-    }
-
-    if (commented) {
-        // The loop above split the buffer into lines at each '\n'.
-        puts("Keywords commented out:");
-        for (line = old; line < stop; line += strlen(line) + 1) {
-            int namelen;
-            char *name = keywordOf(line, &namelen);
-
-            if (name && (findKeyword(name, namelen) < 0))
-                printf("  %.*s\n", namelen, name);
-        }
-    }
-
     delete[] old;
 
     return false;
+}
+
+/* Write keyword x's current value over its line in the file, leaving every
+   other line as it is. False if the file could not be read or written, or has
+   no line for x. */
+
+bool baseconfig::rewriteKeyword(const char *configname, int x)
+{
+    FILE *fd = fopen(configname, "rt");
+
+    if (!fd)
+        return false;
+
+    size_t len;
+    char *old = readWhole(fd, len);
+
+    fclose(fd);
+    if (!old || !(fd = fopen(configname, "wt"))) {
+        delete[] old;
+        return false;
+    }
+
+    bool replaced = copyLines(fd, old, x);
+
+    fclose(fd);
+    delete[] old;
+
+    return replaced;
 }
 
 void baseconfig::newConfig(const char *configname)
 {
     FILE *fd;
     const char **p;
-
-    printf("Creating %s...\n", configname);
 
     fd = fopen(configname, "wt");
     if (fd) {
@@ -515,6 +567,7 @@ resource::resource()
     intro = rc_intro;
     comments = rc_comments;
     configItemNum = startUpLen;
+    created = false;
 
     int c;
     for (c = 0; c < noOfStrings; c++)
@@ -539,13 +592,6 @@ resource::resource()
 char *resource::configName() const
 {
     return backslashes(fullpath(resourceData[homeDir], RCNAME));
-}
-
-// Run the editor on the settings file, then read back what it holds.
-void resource::runEditor(const char *configFileName)
-{
-    mysystem2(resourceData[editor], configFileName);
-    parseConfig(configFileName);
 }
 
 /* Keywords whose new value waits for the next start when changed from inside
@@ -635,6 +681,26 @@ bool resource::wasEdited(int id) const
     return edited[id];
 }
 
+// Whether init() wrote a new settings file, there having been none.
+bool resource::isNew() const
+{
+    return created;
+}
+
+// Save one setting's current value to the file, in place of its old line.
+bool resource::saveSetting(int id)
+{
+    for (int c = 0; c < configItemNum; c++)
+        if (startUp[c] == id) {
+            char *configFileName = configName();
+            bool ok = rewriteKeyword(configFileName, c);
+
+            delete[] configFileName;
+            return ok;
+        }
+    return false;
+}
+
 // A keyword this version does not know that the last editConfig() added to
 // the file, or 0.
 const char *resource::editUnknown() const
@@ -642,70 +708,21 @@ const char *resource::editUnknown() const
     return *unknownName ? unknownName : 0;
 }
 
-/* A new settings file: ask for the editor before writing it. It is the one
-   setting needed to change all the others, and the fallback where EDITOR is
-   unset (vi on Unix) is one plenty of people cannot get back out of. */
+/* Everything here writes to the disk, so it is kept out of the constructor:
+   this object is a global, so the constructor runs before main() has had a
+   chance to see --version or --help, and those must not create a
+   configuration file.
 
-void resource::askEditor()
-{
-    char buf[256];
-
-    printf("Which editor should " MM_NAME " use for letters and settings?\n"
-           "A windowed editor must keep running until you close it, for\n"
-           "example \"code --wait\". Press Enter to keep the one shown.\n\n"
-           "Editor [%s]: ", resourceData[editor]);
-    fflush(stdout);
-
-    // EOF (stdin is not a terminal) keeps the default too.
-    if (fgets(buf, sizeof buf, stdin)) {
-        if (!strchr(buf, '\n')) {
-            // Longer than buf: drop the rest, or it answers the next prompt.
-            int ch;
-            while (((ch = getchar()) != '\n') && (ch != EOF))
-                ;
-        }
-        buf[strcspn(buf, "\r\n")] = '\0';
-        if (*buf)
-            set(editor, buf);
-    }
-    printf("\n");
-}
-
-/* Everything here writes to the disk or asks the user something, so it is kept
-   out of the constructor: this object is a global, so the constructor runs
-   before main() has had a chance to see --version or --help, and those must not
-   create a configuration file or stop at a prompt. */
+   It is written now, before the command-line options are read, so that none
+   of them ends up in it. The interface tells the user what happened here, and
+   offers to edit the file, once the screen is up. */
 
 void resource::init()
 {
     char *configFileName = configName();
 
-    if (parseConfig(configFileName)) {
-        printf("\nWelcome to " MM_NAME " v" MM_VERNUM "!\n\n");
-
-        if (!fileFound)
-            askEditor();
-
-        bool created = updateConfig(configFileName);
-
-        if (created)
-            printf("A new " RCNAME " has been written, with default values "
-                   "for everything else.\nTo look it over first, say 'Y' at "
-                   "the prompt.\n\n");
-        else
-            printf("Your " RCNAME " has been updated in place. Keywords it "
-                   "did not have were\nadded with their default values, and "
-                   "anything this version no longer uses\nwas commented out. "
-                   "Everything else was left as you had it. To look it\nover "
-                   "first, say 'Y' at the prompt.\n\n");
-
-        printf("Edit " RCNAME " now? (y/n) ");
-
-        char inp = fgetc(stdin);
-
-        if (toupper(inp) == 'Y')
-            runEditor(configFileName);
-    }
+    if (parseConfig(configFileName))
+        created = updateConfig(configFileName);
 
     delete[] configFileName;
 
