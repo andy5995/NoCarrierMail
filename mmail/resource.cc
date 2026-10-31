@@ -22,6 +22,7 @@
 # ifdef __WIN32__
 #  define DEFEDIT "start /w notepad"
 #  define DEFVIEWER "more"
+#  define DEFBROWSER "start \"\""
 # else
 #  ifdef __OS2__
 #   define DEFEDIT "tedit"
@@ -29,6 +30,11 @@
 #  else
 #   define DEFEDIT "vi"
 #   define DEFVIEWER "less"
+#   ifdef __APPLE__
+#    define DEFBROWSER "open"
+#   else
+#    define DEFBROWSER "xdg-open"
+#   endif
 #  endif
 # endif
 # define DEFZIP "zip -jkq"
@@ -46,6 +52,10 @@
 
 #define DEFNONE "xxcompress"
 #define DEFUNNONE "xxuncompress"
+
+#ifndef DEFBROWSER
+# define DEFBROWSER ""
+#endif
 
 #ifdef DOSNAMES
 # define ADDRBOOK "address.bk"
@@ -334,7 +344,7 @@ void baseconfig::processOneByName(const char *resName, const char *resValue)
 // ==============
 
 const int startUpLen =
- 53
+ 54
 #ifdef USE_SPAWNO
  + 1
 #endif
@@ -343,7 +353,8 @@ const int startUpLen =
 const char *resource::rc_names[startUpLen] =
 {
     "UserName", "InetAddr", "QuoteHead", "InetQuote",
-    "mmHomeDir", "TempDir", "signature", "editor", "Viewer", "DateFormat",
+    "mmHomeDir", "TempDir", "signature", "editor", "Viewer",
+    "Browser", "DateFormat",
     "PacketDir", "ReplyDir", "SaveDir", "AddressBook", "TaglineFile",
     "ColorFile", "UseColors", "Transparency", "BackFill",
     "arjUncompressCommand", "zipUncompressCommand",
@@ -387,6 +398,7 @@ const char *resource::rc_comments[startUpLen] = {
  "# unless specified here.)",
  "Editor for replies = $EDITOR; or if not defined, " DEFEDIT,
  "External viewer for a message (L key) = $PAGER, else " DEFVIEWER,
+ "Program that opens a link (G key in the letter window)",
  "Date/time format in the reading view (strftime; %x is your locale's date)",
  MM_NAME " will look for packets here",
  "Reply packets go here",
@@ -429,7 +441,7 @@ const char *resource::rc_comments[startUpLen] = {
 const int resource::startUp[startUpLen] =
 {
     UserName, InetAddr, QuoteHead, InetQuote, mmHomeDir, TempDir,
-    sigFile, editor, viewer, dateFormat, PacketDir, ReplyDir, SaveDir,
+    sigFile, editor, viewer, browser, dateFormat, PacketDir, ReplyDir, SaveDir,
     AddressFile,
     TaglineFile, ColorFile, UseColors, Transparency, BackFill,
     arjUncompressCommand, zipUncompressCommand, lhaUncompressCommand,
@@ -971,6 +983,8 @@ void resource::initinit()
 
     p = getenv("PAGER");
     set(viewer, (p ? p : DEFVIEWER));
+
+    set(browser, DEFBROWSER);
 
     set(dateFormat, "%x %H:%M");
 }

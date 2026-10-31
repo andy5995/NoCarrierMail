@@ -4,6 +4,8 @@ Revision History
 (in-progress)
 -------------
 
+- New 'G' key in the letter window lists the links in a message and opens
+  the one you choose in a browser, set by the new "Browser" keyword.
 - 'V' (or CTRL-A) now leaves the ANSI viewer as well as starting it.
 
 0.55 - 2026-10-20

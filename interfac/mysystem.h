@@ -17,6 +17,7 @@ class mystat;
 char *myfgets(char *, int, FILE *);
 int mysystem(const char *);
 int mysystem2(const char *, const char *);
+int openURL(const char *, const char *);
 char *mytmpdir(const char *);
 char *mytmpnam();
 void edit(const char *);

@@ -98,6 +98,7 @@ static const helpitem hi_replylist[] = {
 static const helpitem hi_lettercommon[] = {
     {"S", "Save letter"},
     {"L", "open in externaL viewer"},
+    {"G", "Go to a link in a browser"},
     {"A", "Addressbook"},
     {"C", "toggle Character set"},
     {"D", "Decrypt (rot13) toggle"},
@@ -163,6 +164,13 @@ static const helpitem hi_address[] = {
 // Only when the address book was opened while entering a letter.
 static const helpitem hi_addressletter[] = {
     {"L", "address from Letter"}
+};
+
+static const helpitem hi_linklist[] = {
+    {"Enter", "open the link"},
+    {"/, .", "search / next"},
+    {"|, ^", "filter list"},
+    {"Q", "cancel"}
 };
 
 static const helpitem hi_littlearea[] = {
@@ -421,6 +429,9 @@ void helpTable(statetype st, bool addrInLetter, helplist &h)
         break;
     case littlearealist:
         helpSet(h, hi_littlearea, ARRAY_SIZE(hi_littlearea));
+        break;
+    case linklist:
+        helpSet(h, hi_linklist, ARRAY_SIZE(hi_linklist));
         break;
     case address:
         helpSet(h, hi_address, ARRAY_SIZE(hi_address));

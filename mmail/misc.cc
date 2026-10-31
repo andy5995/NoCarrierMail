@@ -311,6 +311,83 @@ const char *searchstr(const char *source, const char *item, int slen)
     return found ? s : 0;
 }
 
+static bool isURLchar(unsigned char c)
+{
+    return ((c < 128) && isalnum(c)) ||
+           (c && strchr("-._~:/?#[]@!$&'()*+,;=%", c));
+}
+
+/* The first web address in the len bytes at text, or 0; *ulen gets its
+   length. An address starting "www." is found too, with no scheme. Only the
+   characters RFC 3986 allows are taken, so a quote, space or '<' ends one. */
+const char *findURL(const char *text, long len, long *ulen)
+{
+    static const char *prefixes[] = {
+        "http://", "https://", "ftp://", "gopher://", "www."
+    };
+
+    for (long i = 0; i < len; i++) {
+        unsigned char before = i ? text[i - 1] : ' ';
+        if ((before < 128) && isalnum(before))
+            continue;
+
+        // Not the end of a host name or an email address: bob@www.example.com
+        bool www = (4 < len - i) && !strncasecmp(text + i, "www.", 4);
+        if (www && before && strchr("@.-_/", before))
+            continue;
+
+        long plen = 0;
+        for (unsigned p = 0; !plen &&
+             (p < sizeof prefixes / sizeof *prefixes); p++) {
+            long n = (long) strlen(prefixes[p]);
+            if ((n < len - i) && !strncasecmp(text + i, prefixes[p], n))
+                plen = n;
+        }
+        if (!plen)
+            continue;
+
+        long end = i + plen;
+        while ((end < len) && isURLchar(text[end]))
+            end++;
+
+        /* Punctuation that more likely ends the sentence than the address,
+           and a closing bracket the address did not open */
+        int parens = 0, brackets = 0;
+        for (long j = i + plen; j < end; j++)
+            switch (text[j]) {
+            case '(':
+                parens++;
+                break;
+            case ')':
+                parens--;
+                break;
+            case '[':
+                brackets++;
+                break;
+            case ']':
+                brackets--;
+            }
+        while (end > i + plen) {
+            char c = text[end - 1];
+            if ((')' == c) && (parens < 0))
+                parens++;
+            else
+                if ((']' == c) && (brackets < 0))
+                    brackets++;
+                else
+                    if (!strchr(".,;:!?'*", c))
+                        break;
+            end--;
+        }
+
+        if (end > i + plen) {
+            *ulen = end - i;
+            return text + i;
+        }
+    }
+    return 0;
+}
+
 // Find the address in "Foo <foo@bar.baz>" or "foo@bar.baz (Foo)"
 const char *fromAddr(const char *source)
 {

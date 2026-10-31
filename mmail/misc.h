@@ -37,6 +37,7 @@ char *fixPath(const char *);
 int getNumExt(const char *);
 const char *stripre(const char *);
 const char *searchstr(const char *, const char *, int = -1);
+const char *findURL(const char *, long, long *);
 const char *fromAddr(const char *);
 const char *fromName(const char *);
 bool quoteIt(const char *);

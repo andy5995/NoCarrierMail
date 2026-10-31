@@ -207,6 +207,8 @@ mouse, the terminal sends the clicks to NoCarrierMail instead. In many
 terminals, you can hold down Shift as well to give the click back to
 the terminal. Set "Mouse" to "No" to leave all clicks to the terminal.
 The terminal does not find an address that is split over two lines.
+The 'g' key works with the mouse on, and also finds an address that
+only the screen wraps (see LINKS).
 
 
 SEARCHING
@@ -321,6 +323,18 @@ are available in SOUP, and partial extra headers in Blue Wave).
 
 Pressing 'd' toggles rot13 encoding, the crude "encryption" method used
 for spoiler warnings and such, primarily on Usenet.
+
+
+LINKS
+-----
+
+In the letter window, press 'g' to see a list of the web addresses in
+the message. Choose one and press Enter to open it in your browser, or
+press 'q' to go back without opening anything. NoCarrierMail finds
+addresses that start with "http://", "https://", "ftp://", "gopher://"
+or "www.". An address that the message itself splits over two lines is
+not found. The program that opens the link is set by "Browser" in the
+.ncmailrc.
 
 
 ANSI VIEWER
@@ -614,6 +628,16 @@ Here are the keywords and their functions:
   this program. Most terminals and editors will then let you click links
   and select/copy text. Defaults to the "PAGER" environment variable if
   set, otherwise "less" (Unix) or "more" (Windows/OS2).
+
+`Browser`
+  The program used by the "G" key in the letter window to open a link,
+  along with any command-line options. The link is added to the end of
+  the command. Defaults to "xdg-open" (Unix), "open" (macOS) or
+  'start ""' (Windows), which open the link in your default browser. A
+  terminal browser such as "lynx" works too. DOS and OS/2 have no
+  default. On DOS, name the browser program itself, not a batch file. A
+  batch file gets the link through COMMAND.COM, which can change a '%'
+  in it.
 
 `PacketDir`
   Default packet directory.

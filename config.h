@@ -80,6 +80,14 @@
 # define HAS_CONSOLE_CP
 #endif
 
+/* MS-DOS itself, not a Windows build. Its shells expand a '%' and a digit
+   even inside quotes, and outside a batch file, so a URL is not passed
+   through one; and it has no windowed editors to mention. */
+
+#if defined(__MSDOS__) && !defined(__WIN32__)
+# define PLAIN_DOS
+#endif
+
 /* MS-DOS and DOS-like systems. */
 
 #if defined(__MSDOS__) || defined(__WIN32__) || defined(__OS2__)

@@ -329,6 +329,7 @@ void Interface::oldstate(statetype n)
         break;
     case littlearealist:
         areas.Select();
+    case linklist:
     case address:
     case tagwin:
         currList->Delete();
@@ -384,6 +385,12 @@ void Interface::newstate(statetype n)
         state = littlearealist;
         currList = &littleareas;
         littleareas.MakeActive();
+        break;
+    case linklist:
+        newstate(prevstate);
+        state = linklist;
+        currList = &links;
+        links.MakeActive();
         break;
     case address:
         newstate(prevstate);
@@ -498,6 +505,7 @@ bool Interface::select()
         letterwindow.Next();
         break;
     case littlearealist:
+    case linklist:
     case address:
         currList->KeyHandle('\n');
     case tagwin:
@@ -560,6 +568,7 @@ bool Interface::back()
             return back();
         break;
     case littlearealist:
+    case linklist:
     case address:
     case tagwin:
     case ansiwin:
@@ -787,6 +796,21 @@ int Interface::areaMenu()
     changestate(littlearealist);
     KeyHandle();
     return littleareas.getArea();
+}
+
+// Pick a link from the message body; 0 if it has none or none was chosen.
+const char *Interface::linkMenu(letter_body *body, bool showHidden)
+{
+    int n = links.init(body, showHidden);
+
+    if (!n) {
+        nonFatalError("No links in this message");
+        return 0;
+    }
+    prevstate = state;
+    changestate(linklist);
+    KeyHandle();
+    return abortNow ? 0 : links.getLink();
 }
 
 void Interface::setUnsaved()

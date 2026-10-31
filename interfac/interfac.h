@@ -77,7 +77,7 @@ extern "C" {
 
 enum statetype {nostate, packetlist, arealist, letterlist, letter,
                 letter_help, littlearealist, address, tagwin, ansiwin,
-                ansi_help};
+                ansi_help, linklist};
 enum searchret {False, True, Abort};
 enum lineattr {Hidden, Origin, Tearline, Tagline, Sigline, Quoted, Normal};
 
@@ -397,6 +397,31 @@ class LittleAreaListWindow : public ListWindow
     int getArea();
 };
 
+class LinkListWindow : public ListWindow
+{
+    char **links;
+    int *shown;         //indices into links[] the filter lets through, or 0
+    int nlinks, nshown, chosen;
+    int detail;         //rows under the list for the highlighted link in full
+
+    int at(int);
+    void drawDetail(const char *);
+    int NumOfItems();
+    void oneLine(int);
+    searchret oneSearch(int, const char *, int);
+    bool extrakeys(int);
+    void setFilter(const char *);
+    void add(const char *, long);
+    void clear();
+ public:
+    LinkListWindow();
+    ~LinkListWindow();
+    int init(letter_body *, bool);
+    void MakeActive();
+    void Delete();
+    const char *getLink();
+};
+
 class PacketListWindow : public ListWindow
 {
     class oneDir
@@ -536,6 +561,7 @@ class LetterWindow
     void write_header_to_file(FILE *);
     void write_to_file(FILE *);
     void ViewExternal();
+    void OpenLink();
     void GetTagline();
     void VoteMenu();
     bool Previous();
@@ -719,6 +745,7 @@ class Interface
     AddressBook addresses;
     HelpWindow helpwindow;
     LittleAreaListWindow littleareas;
+    LinkListWindow links;
 
     Win *screen;
     ListWindow *currList;
@@ -777,6 +804,7 @@ class Interface
     int ansiFile(file_header *, const char *, bool);
     void ansiList(file_header **, bool);
     int areaMenu();
+    const char *linkMenu(letter_body *, bool);
     void kill_letter();
     void setUnsaved();
     void setUnsavedNoAuto();

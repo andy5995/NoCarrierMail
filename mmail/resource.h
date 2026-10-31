@@ -16,7 +16,7 @@ enum {
 enum {
     homeDir = noOfRaw, mmHomeDir, PacketDir, TempDir, BaseDir, WorkDir,
     UncompressCommand, PacketName, ReplyDir, CompressCommand, UpWorkDir,
-    editor, viewer, dateFormat, SaveDir, AddressFile, TaglineFile,
+    editor, viewer, browser, dateFormat, SaveDir, AddressFile, TaglineFile,
     arjUncompressCommand,
     zipUncompressCommand, lhaUncompressCommand, rarUncompressCommand,
     tarUncompressCommand, unknownUncompressCommand, arjCompressCommand,

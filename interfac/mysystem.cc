@@ -64,6 +64,10 @@ extern "C" {
 # include <dos.h>
 #endif
 
+#ifdef PLAIN_DOS
+# include <process.h>
+#endif
+
 #if defined(USE_FINDFIRST) && defined(USE_IOH)
 # include <stdint.h>
 #endif
@@ -105,6 +109,21 @@ char *myfgets(char *s, int size, FILE *stream)
     return end;
 }
 
+// After a program run with curses down; result is what running it returned.
+static void childDone(int result)
+{
+    // Non-zero result = error; pause so it can (maybe) be read
+    if (result)
+        napms(2000);
+
+    if (ui.on) {
+#ifdef PDCURSES
+        PDC_set_title(MM_NAME);
+#endif
+        keypad(stdscr, TRUE);
+    }
+}
+
 int mysystem(const char *cmd)
 {
     if (ui.on && !isendwin())
@@ -120,17 +139,7 @@ int mysystem(const char *cmd)
     int result = system(cmd);
 #endif
 
-    // Non-zero result = error; pause so it can (maybe) be read
-    if (result)
-        napms(2000);
-
-    if (ui.on) {
-#ifdef PDCURSES
-        PDC_set_title(MM_NAME);
-#endif
-        keypad(stdscr, TRUE);
-    }
-
+    childDone(result);
     return result;
 }
 
@@ -147,6 +156,72 @@ int mysystem2(const char *cmd, const char *args)
     delete[] cmdline;
     delete[] qargs;
     return result;
+}
+
+/* Run cmd on a web address. quotespace() is not used: it strips '%' on DOSish
+   systems, and a URL needs its %-escapes. cmd.exe expands %NAME% before it
+   reads quotes, and %CMDCMDLINE% holds quotes of its own, so there a '%' is
+   kept only before two hex digits -- no variable that can hold a quote has
+   such a name -- and any other is sent as "%25". */
+int openURL(const char *cmd, const char *url)
+{
+#ifdef PLAIN_DOS
+    // The command split at spaces, with the URL as its last argument.
+    enum {maxargs = 16};
+    const char *argv[maxargs + 2];
+    char *words = strdupplus(cmd);
+    char *full = new char[strlen(url) + 8];
+    int n = 0;
+
+    sprintf(full, "%s%s", strncasecmp(url, "www.", 4) ? "" : "http://", url);
+    for (char *w = strtok(words, " \t"); w && (n < maxargs);
+         w = strtok(0, " \t"))
+        argv[n++] = w;
+    argv[n] = full;
+    argv[n + 1] = 0;
+
+    if (ui.on && !isendwin())
+        endwin();
+    int result = n ? spawnvp(P_WAIT, argv[0], argv) : -1;
+    childDone(result);
+
+    delete[] full;
+    delete[] words;
+    return result;
+#else
+# ifdef DOSNAMES
+    const char quote = '\"';
+# else
+    const char quote = '\'';
+# endif
+    char *cmdline = new char[strlen(cmd) + 3 * strlen(url) + 24];
+    char *q = cmdline + sprintf(cmdline, "%s %c", cmd, quote);
+
+    if (!strncasecmp(url, "www.", 4))
+        q += sprintf(q, "http://");
+    for (const char *p = url; *p; p++)
+        if ((quote == *p)
+# ifdef DOSNAMES
+            || (('%' == *p) && !(isxdigit((unsigned char) p[1]) &&
+                                 isxdigit((unsigned char) p[2])))
+# endif
+            )
+            q += sprintf(q, "%%%02X", (unsigned char) *p);
+        else
+            *q++ = *p;
+    *q++ = quote;
+# ifndef DOSNAMES
+    /* A GUI browser that xdg-open leaves running can print warnings over the
+       redrawn screen. Only stderr: a terminal browser needs stdout. */
+    q += sprintf(q, " 2>/dev/null");
+# endif
+    *q = '\0';
+
+    int result = mysystem(cmdline);
+
+    delete[] cmdline;
+    return result;
+#endif
 }
 
 char *mytmpdir(const char *home)

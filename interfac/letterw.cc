@@ -1016,12 +1016,24 @@ void LetterWindow::write_to_file(FILE *fd)
         ui.setAnyRead();
 }
 
+/* endwin() before the notice so it prints after curses releases the terminal
+   (mysystem() sees it's already down and skips its own). A GUI program
+   otherwise leaves the terminal at a bare prompt, looking hung, until its
+   window is closed. */
+static void externalNotice(const char *what)
+{
+    endwin();
+    printf("NoCarrierMail: %s\n", what);
+    fflush(stdout);
+}
+
 void LetterWindow::ViewExternal()
 {
     const char *cmd = mm.res.get(viewer);
 
     if (!cmd || !*cmd) {
-        ui.nonFatalError("No viewer set (add a \"Viewer\" line to .ncmailrc)");
+        ui.nonFatalError(
+            "No viewer set (add a \"Viewer\" line to " RCNAME ")");
         return;
     }
 
@@ -1034,15 +1046,7 @@ void LetterWindow::ViewExternal()
             linelist[i]->out(fd);
         fclose(fd);
 
-        // endwin() before the notice so it prints after curses releases the
-        // terminal (mysystem() sees it's already down and skips its own). A
-        // GUI viewer otherwise leaves the terminal at a bare prompt, looking
-        // hung, until its window is closed.
-        endwin();
-        fputs("NoCarrierMail: waiting for the external viewer to close...\n",
-              stdout);
-        fflush(stdout);
-
+        externalNotice("waiting for the external viewer to close...");
         mysystem2(cmd, fname);
         remove(fname);
         ui.redraw();
@@ -1050,6 +1054,27 @@ void LetterWindow::ViewExternal()
         ui.nonFatalError("Could not open a temporary file for the pager");
 
     delete[] fname;
+}
+
+void LetterWindow::OpenLink()
+{
+    const char *cmd = mm.res.get(browser);
+
+    if (!cmd || !*cmd) {
+        ui.nonFatalError(
+            "No browser set (add a \"Browser\" line to " RCNAME ")");
+        return;
+    }
+
+    const char *url = ui.linkMenu(mm.letterList->getBody(), hidden);
+
+    if (url) {
+        externalNotice("opening the link...");
+        int result = openURL(cmd, url);
+        ui.redraw();
+        if (-1 == result)
+            ui.nonFatalError("Could not start the browser");
+    }
 }
 
 // For searches (may want to start at position == -1):
@@ -1153,6 +1178,9 @@ void LetterWindow::KeyHandle(int key)
         break;
     case 'L':
         ViewExternal();
+        break;
+    case 'G':
+        OpenLink();
         break;
     case '?':
     case MM_F1:
@@ -1317,4 +1345,212 @@ void LetterWindow::VoteMenu()
         ui.nonFatalError("Could not vote (already voted in this packet?)");
 
     ui.redraw();
+}
+
+// ***** LinkListWindow *****
+
+LinkListWindow::LinkListWindow() : links(0), shown(0), nlinks(0), nshown(0),
+                                   chosen(-1), detail(0)
+{
+}
+
+LinkListWindow::~LinkListWindow()
+{
+    clear();
+}
+
+void LinkListWindow::clear()
+{
+    while (nlinks)
+        delete[] links[--nlinks];
+    delete[] links;
+    links = 0;
+    delete[] shown;
+    shown = 0;
+}
+
+// Index in links[] of the i'th row of the list.
+int LinkListWindow::at(int i)
+{
+    return shown ? shown[i] : i;
+}
+
+void LinkListWindow::add(const char *url, long len)
+{
+    for (int c = 0; c < nlinks; c++)
+        if (((long) strlen(links[c]) == len) && !strncmp(links[c], url, len))
+            return;
+
+    char **grown = new char *[nlinks + 1];
+    for (int c = 0; c < nlinks; c++)
+        grown[c] = links[c];
+    delete[] links;
+    links = grown;
+
+    links[nlinks] = new char[len + 1];
+    strnzcpy(links[nlinks++], url, len);
+}
+
+/* The body is the one getBody() returns, which frees the letter window's
+   text; the redraw on the way into the list builds it again. Hidden lines are
+   skipped by the same rule MakeChain() uses, unless they are being shown. */
+int LinkListWindow::init(letter_body *body, bool showHidden)
+{
+    clear();
+    position = active = 0;
+    chosen = -1;
+
+    for (; body; body = body->next) {
+        if (body->isHidden() && !showHidden)
+            continue;
+
+        const char *t = body->getText(), *end = t + body->getLength();
+
+        while (t < end) {
+            const char *eol = (const char *) memchr(t, '\n', end - t);
+            if (!eol)
+                eol = end;
+
+            if (showHidden || (1 != *t) || mm.synchro) {
+                const char *u;
+                long n;
+
+                for (const char *s = t; (u = findURL(s, eol - s, &n)) != 0;
+                     s = u + n)
+                    add(u, n);
+            }
+            t = eol + 1;
+        }
+    }
+    return nlinks;
+}
+
+/* A link too long for its row ends there in '>', and a few rows under the
+   list show the highlighted one in full -- the part that is cut off is the
+   part that tells two such links apart. */
+void LinkListWindow::MakeActive()
+{
+    enum {maxdetail = 4};
+
+    list_max_x = COLS - 10;
+    top_offset = 3;
+
+    size_t longest = 0;
+    for (int c = 0; c < nlinks; c++)
+        if (strlen(links[c]) > longest)
+            longest = strlen(links[c]);
+
+    int width = list_max_x - 2;
+    detail = 0;
+    if (longest > (size_t) (list_max_x - 1)) {
+        detail = (int) ((longest + width - 1) / width);
+        if (detail > maxdetail)
+            detail = maxdetail;
+    }
+
+    int extra = detail ? detail + 1 : 0;
+    int n = NumOfItems();
+
+    list_max_y = (n < LINES - 10 - extra) ? n : LINES - 10 - extra;
+
+    borderCol = C_LALBTEXT;
+
+    list = new InfoWin(list_max_y + 4 + extra, list_max_x + 2, 3, borderCol,
+                       0, C_SBACK, 4 + extra, top_offset);
+
+    list->put(1, 2, "Open which link?");
+    if (detail)
+        list->horizline(top_offset + list_max_y);
+
+    DrawAll();
+}
+
+void LinkListWindow::drawDetail(const char *url)
+{
+    int width = list_max_x - 2, row = top_offset + list_max_y + 1;
+    size_t left = strlen(url);
+    char *buf = new char[width + 1];
+
+    list->attrib(C_LALLINES);
+    for (int r = 0; r < detail; r++) {
+        int take = (left > (size_t) width) ? width : (int) left;
+        bool more = (r == detail - 1) && (left > (size_t) width);
+
+        if (more)
+            sprintf(buf, "%.*s...", width - 3, url);
+        else
+            sprintf(buf, "%-*.*s", width, take, url);
+        list->put(row + r, 2, buf);
+
+        url += take;
+        left -= take;
+    }
+    list->delay_update();
+
+    delete[] buf;
+}
+
+void LinkListWindow::Delete()
+{
+    delete list;
+}
+
+const char *LinkListWindow::getLink()
+{
+    return (chosen >= 0) ? links[chosen] : 0;
+}
+
+int LinkListWindow::NumOfItems()
+{
+    return shown ? nshown : nlinks;
+}
+
+void LinkListWindow::oneLine(int i)
+{
+    const char *url = links[at(position + i)];
+    int room = list_max_x - 1;
+
+    if (strlen(url) > (size_t) room)
+        sprintf(list->lineBuf, " %.*s>", room - 1, url);
+    else
+        sprintf(list->lineBuf, " %-*s", room, url);
+    DrawOne(i, C_LALLINES);
+
+    if (detail && (position + i == active))
+        drawDetail(url);
+}
+
+searchret LinkListWindow::oneSearch(int x, const char *item, int)
+{
+    return searchstr(links[at(x)], item) ? True : False;
+}
+
+bool LinkListWindow::extrakeys(int key)
+{
+    switch (key) {
+    case MM_ENTER:
+        chosen = (active < NumOfItems()) ? at(active) : -1;
+    }
+    return false;
+}
+
+void LinkListWindow::setFilter(const char *item)
+{
+    delete[] shown;
+    shown = 0;
+
+    if (*item) {
+        shown = new int[nlinks];
+        nshown = 0;
+        for (int c = 0; c < nlinks; c++)
+            if (searchstr(links[c], item))
+                shown[nshown++] = c;
+
+        // As the other lists do: a filter that leaves nothing is dropped.
+        if (!nshown) {
+            delete[] shown;
+            shown = 0;
+        }
+    }
+    position = active = 0;
 }

@@ -8,6 +8,17 @@
 #include "../config.h"   // DOSNAMES -- must match what misc.cc compiles
 #include "../mmail/misc.h"
 
+// The first address findURL() finds in text is want (0: none is found).
+static bool urlIs(const char *text, const char *want)
+{
+    long n = 0;
+    const char *u = findURL(text, (long) strlen(text), &n);
+
+    if (!want)
+        return !u;
+    return u && (n == (long) strlen(want)) && !strncmp(u, want, n);
+}
+
 int main()
 {
     unsigned char b[4];
@@ -99,6 +110,31 @@ int main()
     CHECK_STR(q, "\"aPATHb\"");
     delete[] q;
 #endif
+
+    // findURL: what it takes, and the punctuation it leaves behind
+    CHECK(urlIs("See https://example.com/a?b=1&c=2. Thanks",
+                "https://example.com/a?b=1&c=2"));
+    CHECK(urlIs("(www.example.org/x_(y)), ok", "www.example.org/x_(y)"));
+    CHECK(urlIs("<HTTP://Example.COM/>", "HTTP://Example.COM/"));
+    CHECK(urlIs("a \"http://x.y/'q\"`rm`", "http://x.y/'q"));
+
+    CHECK(urlIs("see [http://example.com/page].", "http://example.com/page"));
+    CHECK(urlIs("http://x.y/a[1]", "http://x.y/a[1]"));
+    CHECK(urlIs("*https://x.y/b*", "https://x.y/b"));
+    CHECK(urlIs("bob@www.example.com, www.ok.org", "www.ok.org"));
+    CHECK(urlIs("mirror-www.example.net", 0));
+
+    // no address; a prefix inside a word; a bare scheme
+    CHECK(urlIs("nothing here", 0));
+    CHECK(urlIs("xhttp://a.b nowww.c", 0));
+    CHECK(urlIs("http:// and http://.", 0));
+
+    // the length limit is honoured, not the terminator
+    {
+        const char *t = "http://abcdef";
+        long n = 0;
+        CHECK(findURL(t, 10, &n) == t && n == 10);
+    }
 
     return mm_test_report();
 }
