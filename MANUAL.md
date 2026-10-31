@@ -201,6 +201,13 @@ dialog boxes work in the obvious way.
 
 Button 3 backs out of any screen, equivalent to ESC.
 
+Many terminals find web addresses on the screen and open them when you
+click on them, often with CTRL held down. While NoCarrierMail uses the
+mouse, the terminal sends the clicks to NoCarrierMail instead. In many
+terminals, you can hold down Shift as well to give the click back to
+the terminal. Set "Mouse" to "No" to leave all clicks to the terminal.
+The terminal does not find an address that is split over two lines.
+
 
 SEARCHING
 ---------
