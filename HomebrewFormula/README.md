@@ -49,6 +49,7 @@ Everything goes through a tap and a formula name.
     TAP="$(brew --repository)/Library/Taps/local/homebrew-test"
     mkdir -p "$TAP/HomebrewFormula"
     cp HomebrewFormula/ncmail.rb "$TAP/HomebrewFormula/"
+    brew trust local/test
 
     brew style "$TAP/HomebrewFormula/ncmail.rb"
     brew audit --strict local/test/ncmail

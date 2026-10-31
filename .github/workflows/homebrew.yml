@@ -33,6 +33,11 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
+    # HOMEBREW_NO_AUTO_UPDATE stops the implicit update, but a runner image's
+    # brew can lag the formula API far enough to fail parsing a dependency.
+    - name: Update Homebrew
+      run: brew update
+
     # Homebrew refuses a formula that is not in a tap: install by path and by
     # URL are both rejected, and audit by path is disabled. Dropping the file
     # into Library/Taps is enough to make it "local/test/ncmail" -- no
@@ -44,6 +49,8 @@ jobs:
         mkdir -p "$TAP/HomebrewFormula"
         cp HomebrewFormula/ncmail.rb "$TAP/HomebrewFormula/"
         echo "TAP=$TAP" >> $GITHUB_ENV
+        # Homebrew refuses to load formulas from an untrusted tap.
+        brew trust local/test
         brew info local/test/ncmail
 
     # brew style takes a path, but Homebrew's formula rules are keyed to a
