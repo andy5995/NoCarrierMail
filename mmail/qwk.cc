@@ -102,6 +102,12 @@ bool qwkpack::hasHeaders()
     return headers.any();
 }
 
+bool qwkpack::isNetmailConf(int confnum)
+{
+    int x = getXNum(confnum);
+    return (x != -1) && (areas[x].attr & NETMAIL);
+}
+
 bool qwkpack::externalIndex()
 {
     const char *p;
@@ -857,6 +863,20 @@ bool qwkreply::getRep1(FILE *rep, upl_qwk *l)
     long count, length = 0, chunks = l->qHead.msglen >> 7;
     char linebreak = greekqwk ? ((char) 12) : ((char) 227);
 
+    // A netmail's address sits in the subject field, which the Subject:
+    // kludge below overwrites (see enterLetter())
+    char netfield[sizeof l->qHead.subject];
+    netfield[0] = '\0';
+    if ((l->qHead.subject[0] == '@') &&
+        ((qwkpack *) mm.packet)->isNetmailConf((int) l->qHead.msgnum)) {
+        net_address na;
+        na = l->qHead.subject + 1;
+        if (na.isSet && !na.isInternet) {
+            l->na = na;
+            strcpy(netfield, l->qHead.subject);
+        }
+    }
+
     bool firstblk = true;
     while (chunks) {
         count = (chunks > 10) ? 10 : chunks;
@@ -915,6 +935,11 @@ bool qwkreply::getRep1(FILE *rep, upl_qwk *l)
         length += (long) fwrite(p, 1, q - p + 1, replyFile);
     }
     fclose(replyFile);
+
+    if (netfield[0] && strcmp(netfield, l->qHead.subject)) {
+        l->netsubj = strdupplus(l->qHead.subject);
+        strcpy(l->qHead.subject, netfield);
+    }
 
     l->qHead.msglen = l->msglen = length;
 
@@ -1040,7 +1065,6 @@ area_header *qwkreply::getNextArea()
 
 letter_header *qwkreply::getNextLetter()
 {
-    static net_address nullNet;
     upl_qwk *current = (upl_qwk *) uplListCurrent;
 
     int area = ((qwkpack *) mm.packet)->
@@ -1050,10 +1074,12 @@ letter_header *qwkreply::getNextLetter()
     qwkDispDate(ddate, sizeof ddate, current->qHead.date);
 
     letter_header *newLetter = new letter_header(
-        current->qHead.subject, current->qHead.to, current->qHead.from,
+        current->netsubj ? current->netsubj : current->qHead.subject,
+        current->qHead.to, current->qHead.from,
         ddate, 0, current->qHead.refnum, currentLetter,
         currentLetter, area, current->qHead.privat,
-        current->qHead.msglen, this, nullNet, mm.areaList->isLatin(area));
+        current->qHead.msglen, this, current->na,
+        mm.areaList->isLatin(area));
 
     currentLetter++;
     uplListCurrent = uplListCurrent->nextRecord;
@@ -1083,6 +1109,7 @@ void qwkreply::enterLetter(letter_header &newLetter,
     net_address &na = newLetter.getNetAddr();
     if (na.isSet && !na.isInternet && mm.areaList->isNetmail()) {
         newList->netsubj = strdupplus(newLetter.getSubject());
+        newList->na = na;
         sprintf(newList->qHead.subject, "@%.60s", (const char *) na);
     }
 

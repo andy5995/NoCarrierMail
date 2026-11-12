@@ -81,6 +81,7 @@ class qwkpack : public pktbase
     bool isQWKE();
     bool isGreekQWK();
     bool hasHeaders();
+    bool isNetmailConf(int);
     const char *ctrlName();
 };
 
@@ -94,6 +95,7 @@ class qwkreply : public pktreply
         char *voteTarget;       // voted-on message's ID (In-Reply-To)
         char *voteID;           // the ballot's own message-ID
         char *netsubj;          // real subject, when the address took its place
+        net_address na;         // netmail destination, from the subject field
 
         upl_qwk(const char * = 0);
         ~upl_qwk();
