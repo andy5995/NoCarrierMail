@@ -9,8 +9,8 @@
 class Ncmail < Formula
   desc "Offline mail packet reader for Blue Wave, QWK, OMEN, SOUP and OPX"
   homepage "https://github.com/andy5995/NoCarrierMail"
-  url "https://github.com/andy5995/NoCarrierMail/archive/refs/tags/v0.55.tar.gz"
-  sha256 "d95db8ca03782684cfe520154cba8e99c16e5c731cd0288c6f3ca29c71f1e054"
+  url "https://github.com/andy5995/NoCarrierMail/archive/refs/tags/v0.56.tar.gz"
+  sha256 "b15de13b1d80741f2a3e1a8f98378c4c178749100de46b8d02e80f94bc7418d2"
   license "GPL-3.0-or-later"
   head "https://github.com/andy5995/NoCarrierMail.git", branch: "master"
 
