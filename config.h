@@ -7,7 +7,7 @@
 
 #define MM_NAME "NoCarrierMail"
 #define MM_SNAME "NCMail"
-#define MM_SUFFIX "-dev"  /* "" in a release commit */
+#define MM_SUFFIX ""      /* "" in a release commit */
 #define MM_VERNUM STR(MM_MAJOR) "." STR(MM_MINOR) MM_SUFFIX
 #define MM_TOPHEADER MM_NAME "/%.16s v" MM_VERNUM
 

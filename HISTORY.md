@@ -1,8 +1,8 @@
 Revision History
 ================
 
-(in-progress)
--------------
+0.56 - 2026-11-12
+-----------------
 
 - QWK: a netmail reply lost its address when the reply packet was reopened,
   so it could be sent out with no destination.
